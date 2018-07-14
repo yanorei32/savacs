@@ -1,6 +1,6 @@
 # SAVACS
 
-Senior Assisting Video & Audio Communication System.
+Senior Assisting Video &amp; Audio Communication System.
 
 In development.
 
