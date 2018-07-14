@@ -9,7 +9,7 @@ In development.
 
 ```bash
 cd server
-docker-compose -p savacs --build -d
+docker-compose -p savacs up -d --build
 ```
 
 
