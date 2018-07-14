@@ -1,0 +1,19 @@
+version: '2'
+services:
+  maria_db:
+    build: ./maria_db
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'password'
+  apache_php:
+    build: ./apache_php
+    ports:
+      - '8080:80'
+    volumes:
+      - ./apache_php/html:/var/www/html
+    depends_on:
+      - maria_db
+volumes:
+  db:
+
