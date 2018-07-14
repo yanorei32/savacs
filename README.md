@@ -1,6 +1,15 @@
 # SAVACS
 
-Senior Assisting Video &amp; Audio Communication System.
+**S**enior **A**ssisting **V**ideo &amp; **A**udio **C**ommunication **S**ystem.
 
 In development.
+
+
+## How to up the server
+
+```bash
+cd server
+docker-compose -p savacs --build -d
+```
+
 
