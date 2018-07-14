@@ -13,7 +13,7 @@ services:
     ports:
       - '8080:80'
     volumes:
-      - ./apache_php/html:/var/www/html
+      - ./apache-php/html:/var/www/html
     depends_on:
       - mariadb
 volumes:
