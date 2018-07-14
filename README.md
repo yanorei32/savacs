@@ -12,4 +12,16 @@ cd server
 docker-compose -p savacs up -d --build
 ```
 
+## How to down the server
+
+```bash
+cd server
+docker-compose -p savacs down
+```
+
+## How to clean the server
+
+```bash
+docker volume rm savacs_db
+```
 
