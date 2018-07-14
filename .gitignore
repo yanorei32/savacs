@@ -1,0 +1,4 @@
+# VIM temporary files
+.*.sw[po]
+*~
+
