@@ -13,7 +13,9 @@ services:
     ports:
       - '8080:80'
     volumes:
-      - ./apache-php/html:/var/www/html
+      - ./apache-php/app:/var/www/app
+    environment:
+      SAVAX_ALIAS: '/savacs'
     depends_on:
       - mariadb
 volumes:
