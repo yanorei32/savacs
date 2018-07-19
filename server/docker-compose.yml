@@ -14,10 +14,12 @@ services:
       - '8080:80'
     volumes:
       - ./apache-php/app:/var/www/app
+      - contents:/var/www/contents
     environment:
       SAVAX_ALIAS: '/savacs'
     depends_on:
       - mariadb
 volumes:
   db:
+  contents:
 
