@@ -203,6 +203,275 @@ class DBCommon
 class DBCPhotostand
 {
     /**
+     * Is active association by photostand IDs
+     *
+     * @param PDO   $pdo    PDO object
+     * @param int   $idA    Photostand A ID (range checked)
+     * @param int   $idB    Photostand B ID (range checked)
+     */
+    public static function isActiveAssociationByPhotostandIds(
+        PDO $pdo,
+        int $idA,
+        int $idB
+    ) : bool {
+        // prepare statement
+        $SQL = <<<EOT
+SELECT
+    `photostand_a`,
+    `photostand_b`
+FROM
+    `photostands__photostands`
+WHERE
+    (
+        `photostand_a` = :photostand_a_0
+        and
+        `photostand_b` = :photostand_b_0
+    ) or (
+        `photostand_a` = :photostand_b_1
+        and
+        `photostand_b` = :photostand_a_1
+    )
+LIMIT
+    1
+EOT;
+
+        $statement = $pdo->prepare($SQL);
+
+        if ($statement === false) {
+            throw LogicException(
+                'Oops. prepare() returned false.\n' .
+                'If it was normal it is throw exception.'
+            );
+        }
+
+        $ret = $statement->bindParam(
+            ':photostand_a_0',
+            $idA,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':photostand_a_1',
+            $idA,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':photostand_b_0',
+            $idB,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':photostand_b_1',
+            $idB,
+            PDO::PARAM_INT
+        );
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to bind value.\n' .
+                '$idB or $idA already argumemt type check.'
+            );
+        }
+
+        // execute
+        $ret = $statement->execute();
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to execute authorization sql.\n' .
+                'I think SQL value has an error.' .
+                '(in isActiveAssociationByPhotostandIds)'
+            );
+        }
+
+        // fetch row
+        $row = $statement->fetch(PDO::FETCH_NUM);
+
+        $statement->closeCursor();
+
+        return !($row === false);
+    }
+
+    /**
+     * Create association by photostand IDs
+     *
+     * @param PDO   $pdo    PDO object
+     * @param int   $idA    Photostand A ID (range checked)
+     * @param int   $idB    Photostand B ID (range checked)
+     */
+    public static function createAssociationByPhotostandIds(
+        PDO $pdo,
+        int $idA,
+        int $idB
+    ) {
+        // prepare statement
+        $SQL = <<<EOT
+INSERT
+INTO `photostands__photostands` (
+    `photostand_a`,
+    `photostand_b`
+)
+VALUES
+(
+    :photostand_a,
+    :photostand_b
+);
+EOT;
+
+        $statement = $pdo->prepare($SQL);
+
+        if ($statement === false) {
+            throw LogicException(
+                'Oops. prepare() returned false.\n' .
+                'If it was normal it is throw exception.'
+            );
+        }
+
+        $ret = $statement->bindParam(
+            ':photostand_a',
+            $idA,
+            PDO::PARAM_INT
+        );
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to bind $idA.\n' .
+                '$idA already argumemt type check.'
+            );
+        }
+
+        $ret = $statement->bindParam(
+            ':photostand_b',
+            $idB,
+            PDO::PARAM_INT
+        );
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to bind $idB.\n' .
+                '$idB already argumemt type check.'
+            );
+        }
+
+        // execute
+        $ret = $statement->execute();
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to execute insert sql.\n' .
+                'I think SQL value has an error.' .
+                '(in createAssociationByPhotostandIds)'
+            );
+        }
+
+        $statement->closeCursor();
+
+        return;
+    }
+
+    /**
+     * Get row by cpu_serial_number
+     *
+     * @param PDO       $pdo                PDO object
+     * @param string    $cpuSerialNumber    Raspberry Pi CPU Serial Number
+     *
+     * @return array $row
+     *
+     * @throws RangeException
+     */
+    private static function getRowByCpuSerialNumber(
+        PDO     $pdo,
+        string  $cpuSerialNumber
+    ) : array {
+        // prepare statement
+        $SQL = <<<EOT
+SELECT
+    `id`,
+    `password_hash`
+FROM
+    `photostands`
+WHERE
+    `cpu_serial_number` = :cpu_serial_number
+LIMIT
+    1
+EOT;
+
+        $statement = $pdo->prepare($SQL);
+
+        if ($statement === false) {
+            throw LogicException(
+                'Oops. prepare() returned false.\n' .
+                'If it was normal it is throw exception.'
+            );
+        }
+
+        $ret = $statement->bindParam(
+            ':cpu_serial_number',
+            $cpuSerialNumber,
+            PDO::PARAM_STR
+        );
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to bind $cpuSerialNumber.\n' .
+                '$cpuSerial already argumemt type check.'
+            );
+        }
+
+        // execute
+        $ret = $statement->execute();
+
+        if ($ret === false) {
+            throw LogicException(
+                'Oops. failed to execute authorization sql.\n' .
+                'I think SQL value has an error.' .
+                '(in getIdByCpuSerialNumberAndPasswordHash)'
+            );
+        }
+
+        // fetch row
+        $row = $statement->fetch(PDO::FETCH_NUM);
+
+        $statement->closeCursor();
+
+        if ($row === false) {
+            throw RangeException(
+                '$cpuSerialNumber not found.'
+            );
+        }
+
+        return $row;
+    }
+
+    /**
+     * Get id by cpu_serial_number and password
+     *
+     *
+     * @param PDO       $pdo                PDO object
+     * @param string    $cpuSerialNumber    Raspberry Pi CPU Serial Number
+     * @param string    $password           Password
+     *
+     * @return int $id
+     *
+     * @throws RuntimeException
+     * @throws RangeException
+     */
+    public static function getIdByCpuSerialNumberAndPassword(
+        PDO     $pdo,
+        string  $cpuSerialNumber,
+        string  $password
+    ) : int {
+        $row = self::getRowByCpuSerialNumber(
+            $pdo,
+            $cpuSerialNumber
+        );
+
+        if (!password_verify($password, $row[1])) {
+            throw new RuntimeException(
+                '$password is not match.'
+            );
+        }
+
+        return $row[0];
+    }
+
+    /**
      * Registration photostand
      *
      * @param PDO       $pdo                PDO object
@@ -308,9 +577,38 @@ EOT;
 
         $statement = $pdo->prepare($SQL);
         $statement->execute();
-        $row = $statement->fetchAll(PDO::FETCH_NUM);
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
         $statement->closeCursor();
-        return $row;
+        return $rows;
+    }
+
+    /**
+     * Get all association for debug
+     *
+     * @param PDO $pdo PDO object
+     *
+     * @return array cols
+     *
+     * @throws RuntimeException
+     * @throws RangeException
+     */
+    public static function getAllAssociationValue(
+        PDO     $pdo
+    ) : array {
+        // prepare statement
+        $SQL = <<<EOT
+SELECT
+    `photostand_a`,
+    `photostand_b`
+FROM
+    `photostands__photostands`
+EOT;
+
+        $statement = $pdo->prepare($SQL);
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+        $statement->closeCursor();
+        return $rows;
     }
 }
 
