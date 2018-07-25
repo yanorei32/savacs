@@ -17,27 +17,14 @@ function writeErrorLogAndDie(string $message)
 function main()
 {
     $password = null;
+    $cpuSerialNumber = null;
 
     try {
         $password = ApacheEnvironmentWrapper::getPasswordStringByParams(
             $_POST,
             'password'
         );
-    } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
-            'OutOfBoundsException: ' .
-            $e->getMessage()
-        );
-    } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
-            'UnexpectedValueException: ' .
-            $e->getMessage()
-        );
-    }
 
-    $cpuSerialNumber = null;
-
-    try {
         $cpuSerialNumber = ApacheEnvironmentWrapper::getCpuSerialNumberByParams(
             $_POST,
             'cpuSerialNumber'
@@ -77,6 +64,10 @@ function main()
             $e->getMessage()
         );
     }
+
+    header('Content-type: text/plain');
+
+    echo 'Success.';
 }
 
 main();
