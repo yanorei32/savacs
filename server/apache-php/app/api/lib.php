@@ -264,7 +264,7 @@ EOT;
 
         if ($ret === false) {
             throw LogicException(
-                'Oops. failed to bind value.\n' .
+                'Oops. failed to bind photostand id.\n' .
                 '$idB or $idA already argumemt type check.'
             );
         }
@@ -327,16 +327,7 @@ EOT;
             ':photostand_a',
             $idA,
             PDO::PARAM_INT
-        );
-
-        if ($ret === false) {
-            throw LogicException(
-                'Oops. failed to bind $idA.\n' .
-                '$idA already argumemt type check.'
-            );
-        }
-
-        $ret = $statement->bindParam(
+        ) && $statement->bindParam(
             ':photostand_b',
             $idB,
             PDO::PARAM_INT
@@ -344,8 +335,8 @@ EOT;
 
         if ($ret === false) {
             throw LogicException(
-                'Oops. failed to bind $idB.\n' .
-                '$idB already argumemt type check.'
+                'Oops. failed to bind photostand id.\n' .
+                '$idA or $idB already argumemt type check.'
             );
         }
 
