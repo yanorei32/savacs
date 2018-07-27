@@ -8,6 +8,7 @@ $pdo = DBCommon::createConnection();
 
 header('Content-type: text/plain');
 
-var_dump(DBCPhotostand::getAllAssociationValue($pdo));
+var_dump(DBCSelfyImage::debugGetSelfyImagesPhotostands($pdo));
+
 
 
