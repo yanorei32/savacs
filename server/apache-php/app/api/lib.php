@@ -31,8 +31,8 @@ class ContentsDirectoryPath
      */
     public function getWebServerPath() : string
     {
-        $webServerPath = getenv('SAVACS_ALIAS') . self::$_contentsDirName .
-            $this->_directoryName;
+        $webServerPath = getenv('SAVACS_ALIAS') . '/' .
+            self::$_contentsDirName . $this->_directoryName;
 
         return $webServerPath;
     }
@@ -439,6 +439,77 @@ EOT;
     }
 
     /**
+     * Get active associations
+     *
+     * @param PDO   $pdo    PDO object
+     * @param int   $id     Photostand ID
+     *
+     * @return array $photostandIds
+     */
+    public static function getActiveAssociations(
+        PDO $pdo,
+        int $photostandId
+    ) : array {
+        $sql = <<<EOT
+SELECT
+    *
+FROM
+    `photostands__photostands`
+WHERE
+    `photostand_a` = :photostand_id_0
+    or
+    `photostand_b` = :photostand_id_1
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':photostand_id_0',
+            $photostandId,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':photostand_id_1',
+            $photostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+
+        $statement->closeCursor();
+
+        $relatedPhotostandIds = array();
+
+        foreach ($rows as $row) {
+            $relatedPhotostandIds = array_merge(
+                $relatedPhotostandIds,
+                $row
+            );
+        }
+
+        $relatedPhotostandIds = array_unique($relatedPhotostandIds);
+
+        unset(
+            $relatedPhotostandIds[array_search(
+                $photostandId,
+                $relatedPhotostandIds
+            )]
+        );
+
+        return $relatedPhotostandIds;
+    }
+
+    /**
      * Create association by photostand IDs
      *
      * @param PDO   $pdo    PDO object
@@ -674,6 +745,59 @@ EOT;
     }
 }
 
+class SelfyImage
+{
+    private $_fileName;
+    private $_thumbnailFileName;
+    private $_createdAt;
+
+    /**
+     * Get thumbnail file name
+     *
+     * @return string $thumbnailFileName
+     */
+    public function getThumbnailFileName() : string
+    {
+        return $this->_thumbnailFileName;
+    }
+
+    /**
+     * Get file name
+     *
+     * @return string $fileName
+     */
+    public function getFileName() : string
+    {
+        return $this->_fileName;
+    }
+
+    /**
+     * Get created at
+     *
+     * @return string $createdAt
+     */
+    public function getCreatedAt() : string
+    {
+        return $this->_createdAt;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param string $fileName
+     * @param string $thumbnailFileName
+     * @param string $createdAt
+     */
+    public function __construct(
+        string $fileName,
+        string $thumbnailFileName,
+        string $createdAt
+    ) {
+        $this->_fileName            = $fileName;
+        $this->_thumbnailFileName   = $thumbnailFileName;
+        $this->_createdAt           = $createdAt;
+    }
+}
 
 class DBCSelfyImage
 {
@@ -786,10 +910,85 @@ EOT;
         assert(!($ret === false), 'Failed to commit.');
     }
 
+    /**
+     * Get latest image
+     *
+     * @param PDO   $pdo                PDO object
+     * @param int   $fromPhotostandId   From photostand ID
+     * @param int   $toPhotostandId     To photostand ID
+     *
+     * @throws RuntimeException
+     *
+     * @return SelfyImage $selfyImage
+     */
+    public static function getLatestImage(
+        PDO     $pdo,
+        int     $fromPhotostandId,
+        int     $toPhotostandId
+    ) : SelfyImage {
+        // TODO: This sql has performance issue.
+        $sql = <<<EOT
+SELECT
+    `selfy_images`.`file_name`,
+    `selfy_images`.`thumbnail_file_name`,
+    `selfy_images`.`created_at`
+
+FROM
+    `selfy_images`
+
+    INNER JOIN `selfy_images__photostands`
+        ON `selfy_images`.`id` =
+            `selfy_images__photostands`.`selfy_image_id`
+
+WHERE
+    `selfy_images`.`from_photostand_id` = :from_photostand_id
+    and
+    `selfy_images__photostands`.`to_photostand_id` = :to_photostand_id
+
+ORDER BY
+    `selfy_images`.`created_at`
+
+LIMIT
+    1
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':from_photostand_id',
+            $fromPhotostandId,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':to_photostand_id',
+            $toPhotostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $row = $statement->fetch(PDO::FETCH_NUM);
+        $statement->closeCursor();
+
+        if ($row === false) {
+            throw new RuntimeException('Image not found.');
+        }
+
+        return new SelfyImage($row[0], $row[1], $row[2]);
+    }
+
     public static function debugGetSelfyImages(
         PDO     $pdo
     ) : array {
-        $sql= <<<EOT
+        $sql = <<<EOT
 SELECT
     `id`,
     `file_name`,

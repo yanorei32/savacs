@@ -16,7 +16,7 @@ services:
       - ./apache-php/app:/var/www/app
       - contents:/var/www/contents
     environment:
-      SAVAX_ALIAS: '/savacs'
+      SAVACS_ALIAS: '/savacs'
     depends_on:
       - mariadb
 volumes:
