@@ -59,6 +59,16 @@ class ContentsDirectoryPaths
     {
         return new ContentsDirectoryPath('selfy_images/');
     }
+
+    /**
+     * Get record voices directory prefix
+     *
+     * @return string $recordVoiceDirectoryPath
+     */
+    public static function getRecordVoices() : ContentsDirectoryPath
+    {
+        return new ContentsDirectoryPath('record_voices/');
+    }
 }
 
 class ApacheEnvironmentWrapper
@@ -140,6 +150,88 @@ class ApacheEnvironmentWrapper
         );
 
         return $intArray;
+    }
+
+    /**
+     * Is valid int
+     *
+     * @param   string  $intString
+     *
+     * @return  bool    $isValid
+     */
+    private static function _isValidIntString(
+        string $intString
+    ) : bool {
+        $ret = preg_match('/^\d+$/', $intString);
+
+        if ($ret === 1) {
+            return true;
+        } elseif ($ret === 0) {
+            return false;
+        } elseif ($ret === false) {
+            assert(false, 'Regex pattern is not valid.');
+        }
+    }
+
+    /**
+     * Get int value by params
+     *
+     * @param   array   $parameters
+     * @param   string  $parameterName
+     *
+     * @return  int     $value
+     *
+     * @throws  OutOfBoundsException
+     * @throws  UnexpectedValueException
+     */
+    public static function getIntValueByParams(
+        array   $parameters,
+        string  $parameterName
+    ) : int {
+        $value = self::_getAnyValueByParams($parameters, $parameterName);
+
+        if (!self::_isValidIntString($value)) {
+            throw new UnexpectedValueException(
+                "Parameter '$parameterName' is not valid"
+            );
+        }
+
+        return intval($value);
+    }
+
+    /**
+     * Get AAC Audio by params
+     *
+     * @param   array   $parameters
+     * @param   string  $parameterName
+     *
+     * @return  string  $tempFilePath
+     *
+     * @throws  OutOfBoundsException
+     * @throws  UnexpectedValueException
+     */
+    public static function getAACAudioByFilesParams(
+        array   $parameters,
+        string  $parameterName
+    ) {
+        $file = self::_getAnyValueByParams(
+            $parameters,
+            $parameterName
+        );
+
+        $tempFilePath = $file['tmp_name'];
+
+        if (!is_uploaded_file($tempFilePath)) {
+            throw new UnexpectedValueException('Apache upload failed.');
+        }
+
+        if (mime_content_type($tempFilePath) !== 'audio/x-hx-aac-adts') {
+            throw new UnexpectedValueException(
+                'Uploaded file is not a AAC file.'
+            );
+        }
+
+        return $tempFilePath;
     }
 
     /**
@@ -303,6 +395,43 @@ class BasicTools
         shell_exec($resizeCommand);
 
         chmod($outputFilePath, 0644);
+    }
+
+    /**
+     * Get duration by file path
+     *
+     * @param string $targetFilePath
+     *
+     * @return int $duration
+     *
+     * @throws RuntimeException
+     */
+    public static function getDurationByFilePath(
+        string $targetFilePath
+    ) : int {
+        $stdoutArray = array();
+        $statusCode = null;
+
+        exec(
+            "ffprobe $targetFilePath -show_entries format -print_format json 2>/dev/null",
+            $stdoutArray,
+            $statusCode
+        );
+
+        assert($statusCode === 0, 'ffprobe fail.');
+
+        $jsonString = implode($stdoutArray);
+        $json = json_decode($jsonString, true);
+
+        if (!isset($json['format'])) {
+            throw new RuntimeException('Not set key format.');
+        }
+
+        if (!isset($json['format']['duration'])) {
+            throw new RuntimeException('Not set key duration.');
+        }
+
+        return intval(round(floatval($json['format']['duration'])));
     }
 
     /**
@@ -745,6 +874,310 @@ EOT;
     }
 }
 
+class RecordVoice
+{
+    private $_fileName;
+    private $_duration;
+    private $_createdAt;
+    private $_fromPhotostandId;
+
+    /**
+     * Get duration
+     *
+     * @return int $duration
+     */
+    public function getDuration() : int
+    {
+        return $this->_duration;
+    }
+
+    /**
+     * Get file name
+     *
+     * @return string $fileName
+     */
+    public function getFileName() : string
+    {
+        return $this->_fileName;
+    }
+
+    /**
+     * Get created at
+     *
+     * @return string $createdAt
+     */
+    public function getCreatedAt() : string
+    {
+        return $this->_createdAt;
+    }
+
+    /**
+     * Get from photostand id
+     *
+     * @return int $photostandId
+     */
+    public function fromPhotostandId() : int
+    {
+        return $this->_fromPhotostandId;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param string    $fileName
+     * @param int       $duration
+     * @param string    $createdAt
+     * @param int       $fromPhotostandId
+     */
+    public function __construct(
+        string  $fileName,
+        int     $duration,
+        string  $createdAt,
+        int     $fromPhotostandId
+    ) {
+        $this->_fileName            = $fileName;
+        $this->_duration            = $duration;
+        $this->_createdAt           = $createdAt;
+        $this->_fromPhotostandId    = $fromPhotostandId;
+    }
+}
+
+class DBCRecordVoices
+{
+    /**
+     * Registration new voice
+     *
+     * @param PDO       $pdo                PDO object
+     * @param int       $fromPhotostandId   From photostand ID
+     * @param array     $toPhotostandIds    To photostand IDs (int array)
+     * @param string    $fileName           voice file name
+     * @param int       $duration           voice duration
+     */
+    public static function registrationNewVoice(
+        PDO     $pdo,
+        int     $fromPhotostandId,
+        array   $toPhotostandIds,
+        string  $fileName,
+        int     $duration
+    ) {
+        $ret = $pdo->beginTransaction();
+        assert(!($ret === false), 'Failed to begin transaction.');
+
+        $sql = <<<EOT
+INSERT
+INTO `record_voices` (
+    `file_name`,
+    `duration`,
+    `from_photostand_id`
+)
+VALUES
+(
+    :file_name,
+    :duration,
+    :from_photostand_id
+);
+EOT;
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':file_name',
+            $fileName,
+            PDO::PARAM_STR
+        ) && $statement->bindParam(
+            ':duration',
+            $duration,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':from_photostand_id',
+            $fromPhotostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type argument?'
+        );
+
+        $ret = $statement->execute();
+        $statement->closeCursor();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $recordVoicesTableId = $pdo->lastInsertId();
+
+        $sql = <<<EOT
+INSERT
+INTO `record_voices__photostands` (
+    `to_photostand_id`,
+    `record_voices_id`
+)
+VALUES
+(
+    :to_photostand_id,
+    :record_voices_id
+);
+EOT;
+
+        foreach ($toPhotostandIds as $toPhotostandId) {
+            $statement = $pdo->prepare($sql);
+            assert(!($statement === false), 'Failed to prepare sql.');
+
+            $ret = $statement->bindParam(
+                ':to_photostand_id',
+                $toPhotostandId,
+                PDO::PARAM_INT
+            ) && $statement->bindParam(
+                ':record_voices_id',
+                intval($recordVoicesTableId),
+                PDO::PARAM_INT
+            );
+            assert(
+                !($ret === false),
+                'Failed to bind param.' .
+                '$toPhotostandId is not an integer value.' .
+                ' (from $toPhotostandIds array)'
+            );
+
+            $ret = $statement->execute();
+            $statement->closeCursor();
+
+            assert(
+                !($ret === false),
+                'Failed to execute statement. Propably SQL syntax error.'
+            );
+        }
+
+        $ret = $pdo->commit();
+        assert(!($ret === false), 'Failed to commit.');
+    }
+
+    /**
+     * Get resentry record voices
+     *
+     * @param PDO   $pdo                PDO object
+     * @param int   $toPhotostandId     To photostand ID
+     * @param int   $limit              Limit
+     *
+     * @throws RuntimeException
+     *
+     * @return array $recordVoices (type RecordVoice)
+     */
+    public static function getResentryRecordVoices(
+        PDO     $pdo,
+        int     $toPhotostandId,
+        int     $limit
+    ) : array {
+        // TODO: This sql has performance issue.
+        $sql = <<<EOT
+SELECT
+    `record_voices`.`file_name`,
+    `record_voices`.`duration`,
+    `record_voices`.`created_at`,
+    `record_voices`.`from_photostand_id`
+
+FROM
+    `record_voices`
+
+    INNER JOIN `record_voices__photostands`
+        ON `record_voices`.`id` =
+            `record_voices__photostands`.`record_voices_id`
+
+WHERE
+    `record_voices__photostands`.`to_photostand_id` = :to_photostand_id
+
+ORDER BY
+    `record_voices`.`created_at`
+
+LIMIT
+    :limit
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':to_photostand_id',
+            $toPhotostandId,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':limit',
+            $limit,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+
+        $statement->closeCursor();
+
+        if ($rows === false) {
+            throw new RuntimeException('Record voice not found.');
+        }
+
+        $recordVoices = array();
+
+        foreach ($rows as $row) {
+            $recordVoices[] = new RecordVoice(
+                $row[0],
+                $row[1],
+                $row[2],
+                $row[3]
+            );
+        }
+
+        return $recordVoices;
+    }
+
+    public static function debugGetRecordVoices(
+        PDO     $pdo
+    ) : array {
+        $sql = <<<EOT
+SELECT
+    `id`,
+    `file_name`,
+    `duration`,
+    `from_photostand_id`
+FROM
+    `record_voices`
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+        $statement->closeCursor();
+        return $rows;
+    }
+
+    public static function debugGetRecordVoicesPhotostands(
+        PDO     $pdo
+    ) : array {
+        $sql= <<<EOT
+SELECT
+    `to_photostand_id`,
+    `record_voices_id`
+FROM
+    `record_voices__photostands`
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+        $statement->closeCursor();
+        return $rows;
+    }
+}
+
 class SelfyImage
 {
     private $_fileName;
@@ -806,7 +1239,7 @@ class DBCSelfyImage
      *
      * @param PDO       $pdo                PDO object
      * @param int       $fromPhotostandId   From photostand ID
-     * @param array     $toPhotostandIds    To photostand IDs (int array) (association checked)
+     * @param array     $toPhotostandIds    To photostand IDs (int array)
      * @param string    $fileName           Image file name
      * @param string    $thumbnailFileName  Thumbnail Image file name
      */
