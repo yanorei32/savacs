@@ -1105,6 +1105,7 @@ class PhotostandUI(SubUI):
                     8
                 )
             )
+            return True
 
         self._last_index += 1
 
@@ -1928,28 +1929,29 @@ class ServerConnection(object):
 
         self._latest_selfy_image_for_compare = copy.deepcopy(new_json_object)
 
-        for photostand_id, image_info in new_json_object.items():
-            if image_info['status'] is 0:
-                continue
+        if len(new_json_object) is not 0:
+            for photostand_id, image_info in new_json_object.items():
+                if image_info['status'] is 0:
+                    continue
 
-            self._logger.info('Try to get selfy image. {}'.format(image_info['uri']))
-            ret = self._wget(
-                image_info['uri'],
-                self._psc.get_download_selfy_image_file_name(),
-                'image/jpeg'
-            )
-
-            if ret is False:
-                image_info['status'] = 2
-                continue
-
-            new_json_object[photostand_id]['pixbuf'] = \
-                gtk.gdk.pixbuf_new_from_file_at_size(
+                self._logger.info('Try to get selfy image. {}'.format(image_info['uri']))
+                ret = self._wget(
+                    image_info['uri'],
                     self._psc.get_download_selfy_image_file_name(),
-                    584, 438
+                    'image/jpeg'
                 )
 
-            os.unlink(self._psc.get_download_selfy_image_file_name())
+                if ret is False:
+                    image_info['status'] = 2
+                    continue
+
+                new_json_object[photostand_id]['pixbuf'] = \
+                    gtk.gdk.pixbuf_new_from_file_at_size(
+                        self._psc.get_download_selfy_image_file_name(),
+                        584, 438
+                    )
+
+                os.unlink(self._psc.get_download_selfy_image_file_name())
 
         self._latest_selfy_image = new_json_object
 
