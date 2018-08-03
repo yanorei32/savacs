@@ -31,7 +31,7 @@ class ContentsDirectoryPath
      */
     public function getWebServerPath() : string
     {
-        $webServerPath = getenv('SAVACS_ALIAS') . '/' .
+        $webServerPath = '/' .
             self::$_contentsDirName . $this->_directoryName;
 
         return $webServerPath;
