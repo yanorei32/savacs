@@ -22,6 +22,6 @@ docker-compose -p savacs down
 ## How to clean the server
 
 ```bash
-docker volume rm savacs_db contents
+docker volume rm savacs_db savacs_contents
 ```
 
