@@ -1,4 +1,5 @@
 # VIM temporary files
 .*.sw[po]
 *~
+*.log
 
