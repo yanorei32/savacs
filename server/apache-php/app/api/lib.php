@@ -1089,6 +1089,7 @@ WHERE
 
 ORDER BY
     `record_voices`.`created_at`
+    DESC
 
 LIMIT
     :limit
@@ -1380,6 +1381,7 @@ WHERE
 
 ORDER BY
     `selfy_images`.`created_at`
+    DESC
 
 LIMIT
     1
