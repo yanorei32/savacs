@@ -7,6 +7,7 @@ services:
       - db:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: 'password'
+    restart: always
   apachephp:
     build: ./apache-php
     container_name: apachephp
@@ -14,11 +15,12 @@ services:
       - '8080:80'
     volumes:
       - ./apache-php/app:/var/www/app
-      - contents:/var/www/contents
+      - contents:/var/www/contents:ro
     environment:
       SAVACS_ALIAS: '/savacs'
     depends_on:
       - mariadb
+    restart: always
 volumes:
   db:
   contents:
