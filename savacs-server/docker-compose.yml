@@ -1,0 +1,39 @@
+version: '2'
+services:
+  db:
+    build: ./db
+    image: savacs_db
+    container_name: savacs_db
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - default
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    restart: always
+
+  web:
+    build: ./web
+    image: savacs_web
+    container_name: savacs_web
+    volumes:
+      - ./web/app:/var/www/app
+      - contents:/var/www/contents
+    networks:
+      - default
+    ports:
+      - 8080:80
+    environment:
+      SAVACS_ALIAS: /savacs
+    depends_on:
+      - db
+    restart: always
+
+volumes:
+  db:
+  contents:
+
+networks:
+  default:
+
+
