@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS `savacs_db`.`selfy_images__photostands` (
 );
 
 CREATE TABLE IF NOT EXISTS `savacs_db`.`motion_image_groups` (
-        `id`    int unsigned    not null auto_increment,
-        PRIMARY KEY ( `id` )
+  `id` int unsigned not null auto_increment,
+  PRIMARY KEY ( `id` )
 );
 
 CREATE TABLE IF NOT EXISTS `savacs_db`.`motion_images` (
@@ -116,7 +116,16 @@ CREATE TABLE IF NOT EXISTS `savacs_db`.`motion_images` (
   `file_name`           VARCHAR(50)   NOT NULL,
   `thumbnail_file_name` VARCHAR(56)   NOT NULL,
   `from_photostand_id`  INT UNSIGNED  NOT NULL,
+  `area_width`          INT UNSIGNED  NOT NULL,
+  `area_height`         INT UNSIGNED  NOT NULL,
+  `area_center_x`       INT UNSIGNED  NOT NULL,
+  `area_center_y`       INT UNSIGNED  NOT NULL,
+  `changed_pixel`       INT UNSIGNED  NOT NULL,
+  `noise_level`         INT UNSIGNED  NOT NULL,
   `group_id`            INT UNSIGNED  NOT NULL,
+  `human_classify`      INT UNSIGNED  NOT NULL,
+  `used_ai_id`          INT UNSIGNED  NOT NULL,
+  `ai_classify`         INT UNSIGNED  NOT NULL,
   `created_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY ( `id` ),
@@ -135,7 +144,7 @@ CREATE TABLE IF NOT EXISTS `savacs_db`.`motion_images` (
 );
 
 CREATE TABLE IF NOT EXISTS `savacs_db`.`sensor_datas` (
-  `id`                      INT UNSIGNED  NOT NULL,
+  `id`                      INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `cds_lux`                 FLOAT         NOT NULL,
   `temperature_celsius`     FLOAT         NOT NULL,
   `infrared_centimetear`    FLOAT         NOT NULL,
