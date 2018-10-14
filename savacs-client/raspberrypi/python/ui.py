@@ -27,6 +27,10 @@ import errno
 import pprint
 import copy
 
+# TODO: JSONの取得に成功し、画像の取得に失敗すると、画像取得がリトライされない
+
+DEVELOPMENT_MODE = True
+
 class SubUI(object):
     def close_resources(self):
         pass
@@ -130,7 +134,7 @@ class RecordSendConfirmUI(SubUI):
 
         self._yes_no_hbuttonbox = gtk.HButtonBox()
 
-        self._no_button = gtk.Button('いいえ')
+        self._no_button = gtk.Button('録りなおす')
         self._no_button.connect('clicked', self._on_no_button_click)
         self._no_button.set_size_request(
             204 + temporary_measure_fix_overflow, 64
@@ -140,7 +144,7 @@ class RecordSendConfirmUI(SubUI):
         )
         self._yes_no_hbuttonbox.pack_start(self._no_button, False, False)
 
-        self._yes_button = gtk.Button('はい')
+        self._yes_button = gtk.Button('送信')
         self._yes_button.connect('clicked', self._on_yes_button_click)
         self._yes_button.set_size_request(
             204 + temporary_measure_fix_overflow, 64
