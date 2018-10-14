@@ -1375,7 +1375,7 @@ class InfoBar(object):
 
             return decoded_data['status_description']
 
-        return '%.1f' % decoded_data['valiue'] + '℃'
+        return '%.1f' % decoded_data['value'] + '℃'
 
     def _refresh(self):
         clock = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
