@@ -113,7 +113,7 @@ function main()
     try {
         $tempImageFilePath = ApacheEnvironmentWrapper::getJPEGImageByFilesParams(
             $_FILES,
-            'selfyImage'
+            'motionImage'
         );
     } catch (OutOfBoundsException $e) {
         writeErrorLogAndDie(

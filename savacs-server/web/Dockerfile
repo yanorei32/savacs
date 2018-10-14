@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir /var/www/contents
 RUN mkdir /var/www/contents/selfy_images
 RUN mkdir /var/www/contents/record_voices
+RUN mkdir /var/www/contents/motion_images
 RUN chown -R www-data:www-data /var/www/contents
 
 COPY php.ini /usr/local/etc/php/
