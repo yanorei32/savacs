@@ -31,7 +31,15 @@ class ContentsDirectoryPath
      */
     public function getWebServerPath() : string
     {
-        $webServerPath = '/' .
+        $baseDirectory = getenv('SAVACS_ALIAS');
+
+        if ($baseDirectory === false) {
+            $baseDirectory = '/';
+        } else {
+            $baseDirectory .= '/';
+        }
+
+        $webServerPath = $baseDirectory .
             self::$_contentsDirName . $this->_directoryName;
 
         return $webServerPath;
@@ -1871,8 +1879,8 @@ FROM
 
 WHERE
     `from_photostand_id` = :from_photostand_id
-    and :dt_begin   < `create_at`
-    and `create_at` < :dt_end
+    and :dt_begin   < `created_at`
+    and `created_at` < :dt_end
 
 ORDER BY
     `created_at`
@@ -1900,6 +1908,11 @@ EOT;
             'Failed to bind param. Failed to check type of argument?'
         );
 
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
         $rows = $statement->fetchAll(PDO::FETCH_NUM);
         $statement->closeCursor();
 
@@ -2368,22 +2381,25 @@ EOT;
     }
 
     /**
-     * Get sensor data with range
+     * Get sensor data object by range
      *
      * @param PDO       $pdo                PDO object
      * @param int       $fromPhotostandId   From photostand ID
      * @param int       $beginBackHour      Begin time (current_timestamp - $beginBackHour)
      * @param int       $endBackHour        End time (current_timestamp - $endBackHour)
      *
+     * @return array $sensorDataArray (type: SensorData[])
+     *
      * @throws RuntimeException
      * @throws PDOException
      */
-    public static function getSensorDataWithRange(
+    /*
+    public static function getSensorDataObjectByRange(
         PDO     $pdo,
         int     $fromPhotostandId,
         int     $beginBackHour,
         int     $endBackHour
-    ) : void {
+    ) : array {
         $sql = <<<EOT
 SELECT
     `id`,
@@ -2428,7 +2444,107 @@ EOT;
             'Failed to bind param. Failed to check type of argument?'
         );
 
-        return;
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+
+        $statement->closeCursor();
+
+        $sensorDataArray = array();
+
+        foreach ($rows as $row) {
+            $sv = new SensorValue(
+                $row[1], // cds lux
+                $row[2], // temperature celsius
+                $row[3], // infrared centimetear
+                $row[4], // ultrasonic centimetear
+                $row[5], // pyroelectric
+                $row[6]  // event type
+            );
+
+            $sd = new SensorData(
+                $sv,
+                $row[7],
+                $row[8]
+            );
+
+            $sensorDataArray[] = $sd;
+        }
+
+
+        return $sensorDataArray;
+    }*/
+
+    /**
+     * Get sensor data object by range
+     *
+     * @param PDO       $pdo                PDO object
+     * @param int       $fromPhotostandId   From photostand ID
+     * @param int       $beginBackHour      Begin time (current_timestamp - $beginBackHour)
+     * @param int       $endBackHour        End time (current_timestamp - $endBackHour)
+     *
+     * @throws RuntimeException
+     * @throws PDOException
+     */
+    public static function getSensorDataArrayByRange(
+        PDO     $pdo,
+        int     $fromPhotostandId,
+        int     $beginBackHour,
+        int     $endBackHour
+    ) : array {
+        $sql = <<<EOT
+SELECT
+    `id`,
+    `cds_lux`,
+    `temperature_celsius`,
+    `infrared_centimetear`,
+    `ultrasonic_centimetear`,
+    `pyroelectric`,
+    `event_type`,
+    `from_photostand_id`,
+    `created_at`
+FROM
+    `sensor_datas`
+WHERE
+    `from_photostand_id` = :from_photostand_id
+    AND
+    `created_at` > ( CURRENT_TIMESTAMP - INTERVAL :begin_back_hour HOUR )
+    AND
+    `created_at` < ( CURRENT_TIMESTAMP - INTERVAL :end_back_hour HOUR )
+ORDER BY
+    `created_at` ASC
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':from_photostand_id',
+            $fromPhotostandId,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':begin_back_hour',
+            $beginBackHour,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':end_back_hour',
+            $endBackHour,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        $statement->closeCursor();
+
+        return $rows;
     }
 }
 
