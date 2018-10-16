@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once('lib.php');
+require_once('../lib.php');
 
 function writeErrorLogAndDie(string $message)
 {
