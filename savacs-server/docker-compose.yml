@@ -6,6 +6,7 @@ services:
     container_name: savacs_db
     volumes:
       - db:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - default
     environment:
@@ -19,6 +20,7 @@ services:
     volumes:
       - ./web/app:/var/www/app
       - contents:/var/www/contents
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - default
     ports:

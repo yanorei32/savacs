@@ -123,9 +123,9 @@ CREATE TABLE IF NOT EXISTS `savacs_db`.`motion_images` (
   `changed_pixel`       INT UNSIGNED  NOT NULL,
   `noise_level`         INT UNSIGNED  NOT NULL,
   `group_id`            INT UNSIGNED  NOT NULL,
-  `human_classify`      INT UNSIGNED  NOT NULL,
-  `used_ai_id`          INT UNSIGNED  NOT NULL,
-  `ai_classify`         INT UNSIGNED  NOT NULL,
+  `human_classify`      INT,
+  `used_ai_id`          INT UNSIGNED,
+  `ai_classify`         INT,
   `created_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY ( `id` ),
