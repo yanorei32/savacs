@@ -1,4 +1,4 @@
-# SAVACS 0.0.1
+# SAVACS 0.0.2
 
 **S**enior **A**ssisting **V**ideo &amp; **A**udio **C**ommunication **S**ystem.
 
