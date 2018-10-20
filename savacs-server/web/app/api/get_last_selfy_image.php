@@ -99,7 +99,7 @@ function main()
         }
 
         $selfyImageUri =
-            (ContentsDirectoryPaths::getSelfyImages())->getWebServerPath() .
+            (ContentsDirectoryPaths::getSelfyImages())->getWebServerPathWithoutPrefix() .
             $lastSelfyImage->getFileName();
 
         $lastSelfyImageArray[strval($fromPhotostandId)] = array(

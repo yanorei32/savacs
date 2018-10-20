@@ -91,7 +91,7 @@ function main()
 
     foreach ($recordVoiceObjects as $recordVoiceObject) {
         $recordVoiceURI =
-            (ContentsDirectoryPaths::getRecordVoices())->getWebServerPath() .
+            (ContentsDirectoryPaths::getRecordVoices())->getWebServerPathWithoutPrefix() .
             $recordVoiceObject->getFileName();
 
         $responceObject[] = array(

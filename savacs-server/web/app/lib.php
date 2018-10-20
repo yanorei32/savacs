@@ -129,6 +129,18 @@ class ContentsDirectoryPath
     }
 
     /**
+     * Get web server path without prefix
+     *
+     * @return string $webServerPathWithoutPrefix
+     */
+    public function getWebServerPathWithoutPrefix() : string
+    {
+        $webServerPathWithoutPrefix = self::$_contentsDirName . $this->_directoryName;
+
+        return $webServerPathWithoutPrefix;
+    }
+
+    /**
      * Constructor
      *
      * @param string $directoryName
