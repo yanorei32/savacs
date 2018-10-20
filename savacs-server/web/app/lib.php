@@ -4,6 +4,89 @@ declare(
     strict_types = 1
 );
 
+class WebhookTools
+{
+    /**
+     * Post webhook message
+     *
+     * @param string    $message          Webhook message
+     * @param string    $userWebhookURI   User webhook uri
+     *
+     * @return bool $isSuccess
+     */
+    public static function post(
+        string $userWebhookURI,
+        string $message
+    ) : bool {
+        $options = array(
+            'http' => array(
+                'method'    => 'POST',
+                'header'    => 'Content-Type: application/json',
+                'content'   => json_encode(array(
+                    'username'  => 'SAVACS',
+                    'text'      => $message
+                ))
+            )
+        );
+
+        $reponse = file_get_contents(
+            $userWebhookURI,
+            false,
+            stream_context_create($options)
+        );
+
+        return $reponse === 'ok';
+    }
+
+    /**
+     * Global uploaded notification
+     *   - for debug / management
+     *
+     * @param string    $cpuSerialNumber    CPU Serial number
+     * @param string    $notificationType   Notification type
+     *
+     * @return bool $isSuccess
+     */
+    public static function globalUploadedNotification(
+        string $cpuSerialNumber,
+        string $notificationType,
+        string $path
+    ) : bool {
+        $globalWebhookURI = getenv('GLOBAL_WEBHOOK');
+
+        // cancel webhook upload if not defined
+        if ($globalWebhookURI === false) {
+            return true;
+        }
+
+        $message = '';
+
+        $message .= "Type: $notificationType\n";
+        $message .= "From: $cpuSerialNumber\n";
+
+        $globalServer = getenv('SAVACS_GLOBAL');
+
+        if ($globalServer !== false) {
+            $uri = $globalServer. $path;
+            $message .= "Global: $uri\n";
+        }
+
+        $localServer = getenv('SAVACS_LOCAL');
+
+        if ($localServer !== false) {
+            $uri = $localServer . $path;
+            $message .= "Local: $uri\n";
+        }
+
+        $isSuccess = self::post(
+            $globalWebhookURI,
+            $message
+        );
+
+        return $isSuccess;
+    }
+}
+
 class ContentsDirectoryPath
 {
     // base paths

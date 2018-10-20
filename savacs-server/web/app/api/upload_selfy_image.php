@@ -127,7 +127,8 @@ function main()
         $tempImageFilePath
     );
 
-    $dirPath = (ContentsDirectoryPaths::getSelfyImages())->getFileSystemPath();
+    $selfyImagesDirectoryInfo = ContentsDirectoryPaths::getSelfyImages();
+    $dirPath = $selfyImagesDirectoryInfo->getFileSystemPath();
 
     $selfyImageFileName = $uniqueFileName . '.jpg';
     $selfyImageFilePath = $dirPath . $selfyImageFileName;
@@ -164,6 +165,13 @@ function main()
         $toPhotostandIdsArray,
         $selfyImageFileName,
         $selfyImageThumbnailFileName
+    );
+
+    WebhookTools::globalUploadedNotification(
+        $cpuSerialNumber,
+        'Selfy',
+        $selfyImagesDirectoryInfo->getWebServerPath() .
+            $selfyImageFileName
     );
 
     echo 'Success.';

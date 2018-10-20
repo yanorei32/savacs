@@ -127,7 +127,9 @@ function main()
         $tempVoiceFilePath
     );
 
-    $dirPath = (ContentsDirectoryPaths::getRecordVoices())->getFileSystemPath();
+    $recordVoicesDirectoryInfo = ContentsDirectoryPaths::getRecordVoices();
+
+    $dirPath = $recordVoicesDirectoryInfo->getFileSystemPath();
 
     $recordVoiceFileName = $uniqueFileName . '.aac';
     $recordVoiceFilePath = $dirPath . $recordVoiceFileName;
@@ -162,6 +164,13 @@ function main()
         $toPhotostandIdsArray,
         $recordVoiceFileName,
         $duration
+    );
+
+    WebhookTools::globalUploadedNotification(
+        $cpuSerialNumber,
+        'Record',
+        $recordVoicesDirectoryInfo->getWebServerPath() .
+            $recordVoiceFileName
     );
 
     echo 'Success.';
