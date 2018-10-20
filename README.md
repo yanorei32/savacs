@@ -1,4 +1,4 @@
-# SAVACS (WIP)
+# SAVACS 0.0.0
 
 **S**enior **A**ssisting **V**ideo &amp; **A**udio **C**ommunication **S**ystem.
 
@@ -22,4 +22,8 @@ docker-compose down
 ```bash
 docker volume rm savacsserver_contents savacsserver_db
 ```
+
+## NOTE
+`savacs-server/web/app/api/debug_*`, `savacs-server/web/app/api/admin_*` and `savacs-server/web/app/api/registration_photostand.php` are dangerous.
+It is recommended to prohibit access.
 
