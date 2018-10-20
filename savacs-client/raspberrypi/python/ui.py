@@ -1670,7 +1670,7 @@ class ServerConnection(object):
 
         try:
             r = requests.post(
-                self._psc.get_server_uri_base() + uri,
+                uri,
                 timeout = self._psc.get_server_timeout(),
             )
 
