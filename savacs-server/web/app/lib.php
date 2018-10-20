@@ -135,7 +135,7 @@ class ContentsDirectoryPath
      */
     public function getWebServerPathWithoutPrefix() : string
     {
-        $webServerPathWithoutPrefix = self::$_contentsDirName . $this->_directoryName;
+        $webServerPathWithoutPrefix = '/' . self::$_contentsDirName . $this->_directoryName;
 
         return $webServerPathWithoutPrefix;
     }
