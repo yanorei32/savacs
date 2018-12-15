@@ -24,5 +24,8 @@
 | [Kuman LCD 800x480](https://www.amazon.co.jp/dp/B01GZXMIUU/)                                                 | Amazon.co.jp   | 5,199 JPY |
 | [SanDisk 32GB microSDHC](https://www.amazon.co.jp/dp/B074W6YY8K/)                                            | Amazon.co.jp   | 899 JPY   |
 | [Heat-shirinkable tubing 1/16in](https://item.rakuten.co.jp/auc-treevillage/hstt06-48-q/)                    | Rakuten        | 193 JPY   |
-
+| [Molex KK 2.54mm KF2510 2P](https://www.aliexpress.com/item//32820017968.html)                               | AliEpxress     | 0.43 USD  |
+| [Molex KK 2.54mm KF2510 3P](https://www.aliexpress.com/item//32801489541.html)                               | AliExpress     | 0.65 USD  |
+| [Molex KK 2.54mm KF2510 4P](https://www.aliexpress.com/item//32827103841.html)                               | AliExpress     | 0.70 USD  |
+| [KF2510 Fermale Pin Connector Terminal](https://www.aliexpress.com/item//32825549837.html)                   | AliExpress     | 0.73 USD  |
 
