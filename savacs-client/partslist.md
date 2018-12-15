@@ -9,7 +9,7 @@
 | [PIC 10F322](http://akizukidenshi.com/catalog/g/gI-05824/)                                                   | 秋月電子       | 45 JPY    |
 | [IC Socket 8P](http://akizukidenshi.com/catalog/g/gP-00035/)                                                 | 秋月電子       | 15 JPY    |
 | [RESISTOR 68R 100PCS](http://akizukidenshi.com/catalog/g/gR-07801/)                                          | 秋月電子       | 100 JPY   |
-| [RESISTOR 1K 100PCS](http://akizukidenshi.com/catalog/g/gR-07853/)                                           | 秋月電子       | 100 JPY   |
+| [RESISTOR 100K 100PCS](http://akizukidenshi.com/catalog/g/gR-07853/)                                         | 秋月電子       | 100 JPY   |
 | [CAPACITOR 0.1uF 10PCS](http://akizukidenshi.com/catalog/g/gP-04065/)                                        | 秋月電子       | 100 JPY   |
 | [PIN HEADER 1x40](http://akizukidenshi.com/catalog/g/gC-00167/)                                              | 秋月電子       | 35 JPY    |
 | [PIN SOCKET 1x42](http://akizukidenshi.com/catalog/g/gC-05779/)                                              | 秋月電子       | 80 JPY    |
