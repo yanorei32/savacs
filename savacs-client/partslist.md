@@ -30,4 +30,9 @@
 | [Molex KK 2.54mm KF2510 3P](https://www.aliexpress.com/item//32801489541.html)                               | AliExpress     | 0.65 USD  |
 | [Molex KK 2.54mm KF2510 4P](https://www.aliexpress.com/item//32827103841.html)                               | AliExpress     | 0.70 USD  |
 | [KF2510 Fermale Pin Connector Terminal](https://www.aliexpress.com/item//32825549837.html)                   | AliExpress     | 0.73 USD  |
+| [USB Extension Cable](https://www.aliexpress.com/item//32908620406.html)                                     | AliExpress     | 0.64 USD  |
+| [MicroUSB Splitter](https://www.aliexpress.com/item//32837528901.html)                                       | AliExpress     | 1.07 USD  |
+| [USB DAC (A) 3pcs](https://www.aliexpress.com/item//32659748710.html)                                        | AliExpress     | 1.80 USD  |
+| [USB DAC (B) 3pcs](https://www.aliexpress.com/item//32673744597.html)                                        | AliExpress     | 1.80 USD  |
+| [3.5mm Stereo Plug 2pcs](https://www.aliexpress.com/item//32821667409.html)                                  | AliExpress     | 0.94 USD  |
 
