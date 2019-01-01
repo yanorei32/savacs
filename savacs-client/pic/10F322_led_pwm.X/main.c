@@ -28,9 +28,9 @@ int main(){
 	// 0: output / 1: input
 	TRISA = 0b000;
 
-	// all wpu enable (RA3 is input)
-	OPTION_REGbits.nWPUEN = 0;
-	WPUA = 0b1000;
+	// Disable WPU
+	OPTION_REGbits.nWPUEN = 1;
+	WPUA = 0b0000;
 
 	// 0: digital / 1: analog
 	ANSELA = 0b000;
@@ -54,8 +54,10 @@ int main(){
 	TMR2 = 0;
 	T2CONbits.TMR2ON = 1;
 
+    // initialize pwm state
 	__uint24 valx4 = 0b1000;
-
+    apply2pwm(valx4);
+    
 	for(;;){
 riseup:
 		for(; valx4 < (1024 << 3); valx4 = (valx4 * 0b1001) >> 3){
