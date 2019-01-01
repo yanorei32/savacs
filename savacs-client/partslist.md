@@ -23,6 +23,7 @@
 | [AC Adaptor 5V 3A MicroB](http://akizukidenshi.com/catalog/g/gM-12001/)                                      | 秋月電子      | 700 JPY       |
 | [Wire AWG24 1m x 10color](http://akizukidenshi.com/catalog/g/gP-10672/)                                      | 秋月電子      | 300 JPY       |
 | [DynamicSpeaker 50mm 8ohm 0.4W](http://akizukidenshi.com/catalog/g/gP-09013/)                                | 秋月電子      | 100 JPY       |
+| [LED OSW54K5B61A](http://akizukidenshi.com/catalog/g/gI-04764/)                                              | 秋月電子      | 250 JPY       |
 | [Kuman LCD 800x480](https://www.amazon.co.jp/dp/B01GZXMIUU/)                                                 | Amazon.co.jp  | 5,199 JPY     |
 | [SanDisk 32GB microSDHC](https://www.amazon.co.jp/dp/B074W6YY8K/)                                            | Amazon.co.jp  | 899 JPY       |
 | [Heat-shirinkable tubing 1/16in](https://item.rakuten.co.jp/auc-treevillage/hstt06-48-q/)                    | Rakuten       | 193 JPY       |
