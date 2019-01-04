@@ -29,8 +29,6 @@ import copy
 
 # TODO: JSONの取得に成功し、画像の取得に失敗すると、画像取得がリトライされない
 
-DEVELOPMENT_MODE = True
-
 class SubUI(object):
     def close_resources(self):
         pass
