@@ -61,7 +61,7 @@ class RecordSendingUI(SubUI):
         self._label = gtk.Label()
         self._label.set_text('送信中...')
         self._label.modify_font(
-            pango.FontDescription(psc.get_default_font() + '20')
+            pango.FontDescription(psc.get_default_font() + ' 20')
         )
         self._main_hbox.pack_start(self._label, False, False)
 
