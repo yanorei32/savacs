@@ -54,10 +54,10 @@ int main(){
 	TMR2 = 0;
 	T2CONbits.TMR2ON = 1;
 
-    // initialize pwm state
+	// initialize pwm state
 	__uint24 valx4 = 0b1000;
-    apply2pwm(valx4);
-    
+	apply2pwm(valx4);
+
 	for(;;){
 riseup:
 		for(; valx4 < (1024 << 3); valx4 = (valx4 * 0b1001) >> 3){
