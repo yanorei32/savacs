@@ -358,7 +358,7 @@ class RecordUI(SubUI):
         self._main_vbox.pack_start(self._back_hbox, False, False)
 
         self._statuses = {
-            'wait':         '録音開始待ち',
+            'wait':         'ボタンを押してください',
             'recording':    '録音中',
         }
 
