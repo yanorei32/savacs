@@ -215,7 +215,7 @@ class SerialPortWatcher:
             line = line[:-2]
 
             if not self._sample_regex_pattern.match(line):
-                self._logger.info('Fail line')
+                self._logger.error('Fail line: ' + line)
                 continue
 
             sample_lines += (line + ',')
@@ -277,7 +277,7 @@ class SerialPortWatcher:
         return new_value, send_flag
 
     def _send_to_server(self, trigger, data):
-        self._logger.info('Try to send value. fire event by {}.'.format(trigger))
+        self._logger.debug('Try to send value. fire event by {}.'.format(trigger))
 
         post_data = {
             'password'              : self._psc.get_password(),
@@ -320,7 +320,7 @@ class SerialPortWatcher:
             self._logger.error('OOps: Something Else:' + str(err))
             return False
 
-        self._logger.info('Send success.')
+        self._logger.debug('Send success.')
         return True
 
     def main(self):
