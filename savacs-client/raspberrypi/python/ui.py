@@ -21,7 +21,7 @@ import requests
 import subprocess
 import sys
 import ConfigParser
-import logging
+import coloredlogs, logging
 import traceback
 import errno
 import pprint
@@ -943,7 +943,7 @@ class CaptureUI(SubUI):
         self._last_frame_lock = threading.Lock() # for save image
 
     def _on_shutter_button_clicked(self, button):
-        self._logger.info('Image write to disk')
+        self._logger.debug('Image write to disk')
 
         with self._last_frame_lock:
             cv2.imwrite(
@@ -1273,7 +1273,7 @@ class UIManager(object):
             self._window.remove(old_ui.get_root_object())
 
 
-        self._logger.info('Change UI from {} to {}'.format(self._last_ui, name))
+        self._logger.debug('Change UI from {} to {}'.format(self._last_ui, name))
         new_ui = self._ui_instances[name]
         new_ui.open_resources()
         self._window.add(new_ui.get_root_object())
@@ -1294,7 +1294,7 @@ class UIManager(object):
             self._window.remove(old_ui.get_root_object())
 
 
-        self._logger.info('Change UI With Param from {} to {}'.format(self._last_ui, name))
+        self._logger.debug('Change UI With Param from {} to {}'.format(self._last_ui, name))
         new_ui = self._ui_instances[name]
         new_ui.set_param(param)
         new_ui.open_resources()
@@ -1349,7 +1349,7 @@ class InfoBar(object):
             s.close()
 
         except socket.error as e:
-            self._logger.exception('Socket Error: %s', e)
+            self._logger.errror('Socket Error: %s', e)
             return '{SOCKET ERROR}'
 
         except socket.timeout as e:
@@ -1362,7 +1362,7 @@ class InfoBar(object):
             decoded_data = json.loads(json_data)
 
         except ValueError:
-            self._logger.erorr(
+            self._logger.error(
                 'Sensor json_data is not valid: ' + json_data
             )
             return '{API ERROR}'
@@ -1635,7 +1635,7 @@ class ServerConnection(object):
             return []
 
         if self._csv_like_int_array_regex.match(response) is False:
-            self._logger.info('Invalid response:' + response)
+            self._logger.error('Invalid response:' + response)
             return False
 
         intArray = []
@@ -1666,7 +1666,7 @@ class ServerConnection(object):
         return dec_obj
 
     def upload_record_voice(self, to_photostand_ids_array):
-        self._logger.info('Try to upload record voice')
+        self._logger.debug('Try to upload record voice')
 
         additional_file = None
         try:
@@ -1698,7 +1698,7 @@ class ServerConnection(object):
         os.unlink(self._psc.get_capture_record_voice_file_name())
 
     def upload_selfy_image(self, to_photostand_ids_array):
-        self._logger.info('Try to upload selfy image')
+        self._logger.debug('Try to upload selfy image')
 
         additional_file = None
         try:
@@ -1730,7 +1730,7 @@ class ServerConnection(object):
         os.unlink(self._psc.get_capture_selfy_image_file_name())
 
     def _update_resentry_record_voices_object(self):
-        self._logger.info('Try to get record voices json.')
+        self._logger.debug('Try to get record voices json.')
 
         new_json_object = self._get_json_object_from_server(
             '/api/get_resentry_record_voices.php',
@@ -1748,7 +1748,7 @@ class ServerConnection(object):
         return self._resentry_record_voices
 
     def _wget(self, uri, file_name, expected_mime_type):
-        self._logger.info(
+        self._logger.debug(
             'Try to download record voice/selfy image.'
         )
 
@@ -1768,7 +1768,7 @@ class ServerConnection(object):
         return True
 
     def _update_last_selfy_image_object(self):
-        self._logger.info('Try to get selfy image json.')
+        self._logger.debug('Try to get selfy image json.')
 
         new_json_object = self._get_json_object_from_server(
             '/api/get_last_selfy_image.php'
@@ -1789,7 +1789,7 @@ class ServerConnection(object):
                 if image_info['status'] is 0:
                     continue
 
-                self._logger.info('Try to get selfy image. {}'.format(image_info['uri']))
+                self._logger.debug('Try to get selfy image. {}'.format(image_info['uri']))
                 ret = self._wget(
                     image_info['uri'],
                     self._psc.get_download_selfy_image_file_name(),
@@ -1861,9 +1861,10 @@ def main():
     logger = logging.getLogger(__name__)
     handler = logging.StreamHandler()
     handler.setFormatter(
-        logging.Formatter("[%(asctime)s] [%(threadName)s] %(message)s")
+        # logging.Formatter("[%(asctime)s] [%(threadName)s] %(message)s")
+        coloredlogs.ColoredFormatter(fmt="[%(asctime)s] [%(threadName)s] %(message)s")
     )
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     logger.propagate = False
