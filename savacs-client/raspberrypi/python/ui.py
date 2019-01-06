@@ -1828,7 +1828,7 @@ class ServerConnection(object):
         return self._latest_selfy_image
 
     def _update_associated_photostands_array(self):
-        self._logger.info(
+        self._logger.debug(
             'Try to get associated photostands csv like int array.'
         )
 
