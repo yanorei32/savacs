@@ -125,7 +125,7 @@ main();
         <meta charset=utf-8>
         <title>Graph</title>
         <meta name=viewport content="width=device-width, initial-scale=1.0">
-        <link rel=stylesheet href=css/pure-min.css>
+        <link rel=stylesheet crossorigin=anonymous integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" href=//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css>
 
         <!--[if lte IE 8]>
             <link rel=stylesheet crossorigin=anonymous integrity="sha256-r/sKuPk30/v587KhP6Bo+6jx9gpKQKHoGuxcA6FBhJo=" href=//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-old-ie-min.css>
