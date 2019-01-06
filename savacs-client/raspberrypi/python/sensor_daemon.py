@@ -308,7 +308,12 @@ class SerialPortWatcher:
             return False
 
         except requests.exceptions.Timeout as errt:
-            self._logger.error('Timeout Error ({} secounds): '.format(self._HTTP_TIMEOUT) + str(errt))
+            self._logger.error(
+                'Timeout Error ({} secounds): '.format(
+                    self._psc.get_server_timeout()
+                ) + str(errt)
+            )
+
             return False
 
         except requests.exceptions.RequestException as err:
