@@ -171,13 +171,13 @@ function main()
 
         $createdAt = new DateTime(
             $latestImage->getCreatedAt(),
-            new DateTimeZone('UTC')
+            new DateTimeZone('Asia/Tokyo')
         );
 
         $now = new DateTime();
 
         $diff = ($now->getTimestamp() - $createdAt->getTimestamp());
-        assert($diff < 0, 'diff secounds variable is negative value');
+        assert($diff >= 0, 'diff seconds variable is negative value');
 
         $createNewGroup = NEW_GROUP_THRESHOLD_SEC < $diff;
     } catch (RuntimeException $e) {
