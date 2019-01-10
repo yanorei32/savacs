@@ -125,13 +125,13 @@ main();
         <meta charset=utf-8>
         <title>Graph</title>
         <meta name=viewport content="width=device-width, initial-scale=1.0">
-        <link rel=stylesheet crossorigin=anonymous integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" href=//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css>
+        <link rel=stylesheet crossorigin=anonymous integrity="sha256-Q0zCrUs2IfXWYx0uMKJfG93CvF6oVII21waYsAV4/8Q=" href=https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/pure-min.css>
 
         <!--[if lte IE 8]>
-            <link rel=stylesheet crossorigin=anonymous integrity="sha256-r/sKuPk30/v587KhP6Bo+6jx9gpKQKHoGuxcA6FBhJo=" href=//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-old-ie-min.css>
+            <link rel=stylesheet crossorigin=anonymous integrity="sha256-r/sKuPk30/v587KhP6Bo+6jx9gpKQKHoGuxcA6FBhJo=" href=https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-old-ie-min.css>
         <![endif]-->
         <!--[if gt IE 8]><!-->
-            <link rel=stylesheet crossorigin=anonymous integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" href=//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css>
+            <link rel=stylesheet crossorigin=anonymous integrity="sha256-YqnnS/cQ7vE7gfVjdfx+JMi5EFD6m6Zqdemj81rs6PU=" href=https://cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css>
         <!--<![endif]-->
     </head>
     <body>
@@ -153,10 +153,10 @@ main();
                 <canvas id=tempChart></canvas>
             </div>
         </div>
-        <script crossorigin=anonymous integrity="sha256-OI3N9zCKabDov2rZFzl8lJUXCcP7EmsGcGoP6DMXQCo=" src=//cdnjs.cloudflare.com/ajax/libs/es6-promise/4.1.1/es6-promise.auto.min.js></script>
-        <script crossorigin=anonymous integrity="sha256-zG8v+NWiZxmjNi+CvUYnZwKtHzFtdO8cAKUIdB8+U9I=" src=//cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment.min.js></script>
-        <script crossorigin=anonymous integrity="sha256-VX6SyoDzanqBxHY3YQyaYB/R7t5TpgjF4ZvotrViKAY=" src=//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.21/moment-timezone-with-data.min.js></script>
-        <script crossorigin=anonymous integrity="sha256-CfcERD4Ov4+lKbWbYqXD6aFM9M51gN4GUEtDhkWABMo=" src=//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js></script>
+        <script crossorigin=anonymous integrity="sha256-OI3N9zCKabDov2rZFzl8lJUXCcP7EmsGcGoP6DMXQCo=" src=https://cdnjs.cloudflare.com/ajax/libs/es6-promise/4.1.1/es6-promise.auto.min.js></script>
+        <script crossorigin=anonymous integrity="sha256-zG8v+NWiZxmjNi+CvUYnZwKtHzFtdO8cAKUIdB8+U9I=" src=https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment.min.js></script>
+        <script crossorigin=anonymous integrity="sha256-VX6SyoDzanqBxHY3YQyaYB/R7t5TpgjF4ZvotrViKAY=" src=https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.21/moment-timezone-with-data.min.js></script>
+        <script crossorigin=anonymous integrity="sha256-CfcERD4Ov4+lKbWbYqXD6aFM9M51gN4GUEtDhkWABMo=" src=https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js></script>
         <script>
             const SENSOR_DATA           = <?php echo $json; ?>;
             const SENSOR_DATA_LENGTH    = SENSOR_DATA.length;
