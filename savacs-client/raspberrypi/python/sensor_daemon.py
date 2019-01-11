@@ -126,6 +126,10 @@ class SensorRawValueConverter:
         # calc centimetear
         centimetear = (14 / voltage) ** 1.25
 
+        # FIXME: Hot fix
+        if centimetear > 500:
+            centimetear = 500
+
         return centimetear
 
     def ultrasonic_distance_raw_value_to_centimetear(self, val):
