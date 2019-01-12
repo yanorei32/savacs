@@ -1,0 +1,11 @@
+# KEYBOARD CONFIGURATION FILE
+
+# Consult the keyboard(5) manual page.
+
+XKBMODEL="jp106"
+XKBLAYOUT="jp"
+XKBVARIANT=""
+XKBOPTIONS="ctrl:nocaps"
+
+BACKSPACE="guess"
+
