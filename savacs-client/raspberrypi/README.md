@@ -14,13 +14,19 @@
 
 ```sh
 sudo mount /dev/sda /mnt
+
 sudo cp /mnt/interfaces /etc/network/interfaces
+
 sudo cp /mnt/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
 sudo chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
+
 sudo umount /mnt
 ```
 
 ## Setup
+
+### Install your authorized_keys
+Install your `~/.ssh/authorized_keys`
 
 ### Install git
 ```sh
@@ -45,13 +51,14 @@ cd ~/savacs/savacs-client/raspberrypi/conf/
 sudo ./install-basics.sh
 ```
 
-* **IMPORTANT:** This script will destroy the files.
-	* `/boot/config.txt`
-	* `/etc/apt/sources.list`
-	* `/etc/default/keyboard`
-	* `/etc/ssh/sshd_config`
-	* `~pi/.xinitrc`
-	* `~pi/motion.conf`
+**IMPORTANT:** This script will destroy the files.
+* `/boot/config.txt`
+* `/etc/apt/sources.list`
+* `/etc/default/keyboard`
+* `/etc/ssh/sshd_config`
+	* If your LAN is not `192.168.0.1/24`, password authentication will be impossible.
+* `~pi/.xinitrc`
+* `~pi/motion.conf`
 
 ### Reboot
 
@@ -78,4 +85,28 @@ git clone https://github.com/yanorei32/dotfiles
 vim # and run :PlugInstall, :q in Vim
 ```
 
+### Install / Configure X Server
+```sh
+sudo apt install \
+	xinit \
+	xserver-xorg-core
+
+sudo dpkg-reconfigure xserver-xorg-legacy
+# Select anybody
+```
+
+### Install pip
+```sh
+curl -kL https://bootstrap.pypa.io/get-pip.py | sudo python2
+```
+
+### Install python libs
+```sh
+# build deps
+sudo apt install \
+	python2.7-dev
+
+# install numpy ( dep: OpenCV, ui.py, etc... )
+sudo pip install numpy
+```
 
