@@ -143,7 +143,7 @@ unzip 4.0.1.zip
 mkdir opencv-4.0.1/build
 cd opencv-4.0.1/build
 ~/savacs/savacs-client/raspberrypi/setup/opencv-4.0.1-cmake.sh
-time make -j4
+time make -j4 # In my raspberry pi, user 34m26.136s.
 sudo make install
 ```
 
