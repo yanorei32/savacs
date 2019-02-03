@@ -517,8 +517,6 @@ class AfUnixServerThread(threading.Thread):
         conn.close()
         self._cleanup()
 
-FileNotFoundError = IOError
-
 def main():
     # logger initialize
     logger = logging.getLogger(__name__)
