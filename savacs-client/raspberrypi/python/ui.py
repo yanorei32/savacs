@@ -1,17 +1,14 @@
 # -*- coding:utf-8 -*-
+
 import cv2
-try:
-    import pygtk
-    pygtk.require('2.0')
-except:
-    pass
-import numpy as np
-import gtk
-import gobject
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, GdkPixbuf, GObject, GLib, Pango
+
 import copy
 import datetime
 import threading
-import pango
 import socket
 import os
 import json
@@ -30,6 +27,29 @@ from photostand_config import PhotostandConfig, FailedToReadSerialNumber
 
 # TODO: JSONの取得に成功し、画像の取得に失敗すると、画像取得がリトライされない
 
+def gtk_gdk_pixbuf_new_from_array(array, colorspace, bits_per_sample):
+    height, width, depth = array.shape
+
+    rowstride = width * depth
+
+    data = array.tostring(order = 'C')
+    # data = array.reshape([-1])
+
+    has_alpha = (depth==4)
+    #rowstride = GdkPixbuf.Pixbuf.calculate_rowstride(colorspace, has_alpha, bits_per_sample, width, height)
+
+    return GdkPixbuf.Pixbuf.new_from_data(
+        data,
+        colorspace,
+        has_alpha,
+        bits_per_sample,
+        width,
+        height,
+        rowstride,
+        None,
+        None
+    )
+
 class SubUI(object):
     def close_resources(self):
         pass
@@ -43,6 +63,42 @@ class SubUI(object):
     def get_root_object(self):
         return None
 
+    def _append_button(self, psc, parent, label, callback):
+        b = Gtk.Button(label)
+        b.get_child().modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
+        )
+        b.set_size_request(204, 64)
+        b.connect(
+            'clicked',
+            callback
+        )
+        parent.pack_start(
+            b,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+        return b
+
+    def _create_dummy_pixbuf(self, width, height, r, g, b):
+        dummyPixbuf = GdkPixbuf.Pixbuf.new(
+            GdkPixbuf.Colorspace.RGB,
+            False, # with alpha
+            8, # bit
+            width, height
+        )
+
+        a = 0
+        dummyPixbuf.fill(
+            r << 8 * 3 &
+            g << 8 * 2 &
+            b << 8 * 1 &
+            a << 8 * 0
+        )
+
+        return dummyPixbuf
+
     def _seconds2txt(self, seconds):
         return '{:02d}:{:02d}'.format(
             int(seconds / 60),
@@ -52,33 +108,42 @@ class SubUI(object):
 class RecordSendingUI(SubUI):
     def __init__(self, change_to, psc, sc):
         self._change_to = change_to
-        self._psc = psc
         self._sc = sc
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox()
 
-        self._label = gtk.Label()
-        self._label.set_text('送信中...')
-        self._label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        label = Gtk.Label('送信中...')
+        label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
         )
-        self._main_hbox.pack_start(self._label, False, False)
+
+        main_hbox.pack_start(
+            label,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+
+        self._root = main_hbox
 
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
     def on_load(self):
-        self._upload_thread = threading.Thread(target=self._record_voice_upload)
-        self._upload_thread.setDaemon(True)
-        self._upload_thread.start()
+        upload_t = threading.Thread(
+            target=self._record_voice_upload
+        )
+        upload_t.setDaemon(True)
+        upload_t.start()
 
     def _record_voice_upload(self):
-        self._sc.upload_record_voice(self._to_photostand_ids_array)
+        self._sc.upload_record_voice(
+            self._to_photostand_ids_array
+        )
         self._change_to('PhotostandUI')
 
     def set_param(self, param):
         self._to_photostand_ids_array = param
-
 
 
 class RecordSendConfirmUI(SubUI):
@@ -88,72 +153,73 @@ class RecordSendConfirmUI(SubUI):
         self._psc = psc
         self._logger = logger
 
-        # TODO:
-        temporary_measure_fix_overflow = -7
+        main_vbox = Gtk.VBox(spacing=5)
 
-        self._main_vbox = gtk.VBox(spacing=5)
+        confirm_message = Gtk.Label('録音を送信しますか？')
+        confirm_message.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 50')
+        )
+        main_vbox.pack_start(
+            confirm_message,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
 
-        self._confirm_message = gtk.Label()
-        self._confirm_message.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 50')
+        sec_label = Gtk.Label('00:00')
+        sec_label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 100')
         )
-        self._confirm_message.set_text(
-            '録音を送信しますか？'
+        main_vbox.pack_start(
+            sec_label,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._main_vbox.pack_start(self._confirm_message, False, False)
 
-        self._sec_label = gtk.Label()
-        self._sec_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 100')
-        )
-        self._main_vbox.pack_start(self._sec_label, False, False)
-        self._play_stop_hbuttonbox = gtk.HButtonBox()
+        hbuttonbox = Gtk.HButtonBox()
 
-        self._play_button = gtk.Button('再生')
-        self._play_button.connect('clicked', self._on_play_button_click)
-        self._play_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        play_button = self._append_button(
+            psc,
+            hbuttonbox,
+            '再生',
+            self._on_play_button_click
         )
-        self._play_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        stop_button = self._append_button(
+            psc,
+            hbuttonbox,
+            '停止',
+            self._on_stop_button_click
         )
-        self._play_stop_hbuttonbox.pack_start(self._play_button, False, False)
 
-        self._stop_button = gtk.Button('停止')
-        self._stop_button.connect('clicked', self._on_stop_button_click)
-        self._stop_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        main_vbox.pack_start(
+            hbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._stop_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._play_stop_hbuttonbox.pack_start(self._stop_button, False, False)
 
-        self._main_vbox.pack_start(self._play_stop_hbuttonbox, False, False)
+        hbuttonbox = Gtk.HButtonBox()
 
-        self._yes_no_hbuttonbox = gtk.HButtonBox()
+        no_button = self._append_button(
+            psc,
+            hbuttonbox,
+            '録り直し',
+            self._on_no_button_click
+        )
+        yes_button = self._append_button(
+            psc,
+            hbuttonbox,
+            '送信',
+            self._on_yes_button_click
+        )
 
-        self._no_button = gtk.Button('録りなおす')
-        self._no_button.connect('clicked', self._on_no_button_click)
-        self._no_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        main_vbox.pack_start(
+            hbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._no_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._yes_no_hbuttonbox.pack_start(self._no_button, False, False)
-
-        self._yes_button = gtk.Button('送信')
-        self._yes_button.connect('clicked', self._on_yes_button_click)
-        self._yes_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._yes_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._yes_no_hbuttonbox.pack_start(self._yes_button, False, False)
-
-        self._main_vbox.pack_start(self._yes_no_hbuttonbox, False, False)
 
 
         self._statuses = {
@@ -164,25 +230,26 @@ class RecordSendConfirmUI(SubUI):
 
         self._ffprobe_cli = \
             'ffprobe {} -show_streams -print_format json 2>/dev/null'.format(
-                self._psc.get_capture_record_voice_file_name()
+                psc.get_capture_record_voice_file_name()
             )
 
         self._ffmpeg_cli = (
             'ffmpeg -i {} -vn -f s16le -ar 48k -ac 2 -' + \
             '| aplay -f dat -D hw:1'
-        ).format(self._psc.get_capture_record_voice_file_name())
+        ).format(psc.get_capture_record_voice_file_name())
 
-        pass
+        self._sec_label     = sec_label
+        self._play_button   = play_button
+        self._stop_button   = stop_button
+        self._root          = main_vbox
 
-    def _change_to_record_ui(self):
-        self._change_to('RecordUI')
 
     def _on_no_button_click(self, button):
         if self._status is self._statuses['playing']:
-            self._on_play_end = self._change_to_record_ui
+            self._on_play_end = lambda: self._change_to('RecordUI')
             self._ffmpeg_stop_request()
         else:
-            self._change_to_record_ui()
+            self._change_to('RecordUI')
 
     def _change_to_set_send_photostand_ids_ui(self):
         self._change_to_with_param(
@@ -230,7 +297,7 @@ class RecordSendConfirmUI(SubUI):
             stdin   = subprocess.PIPE,
             shell   = True
         )
-        gobject.timeout_add(
+        GObject.timeout_add(
             100,
             self._ffmpeg_terminate_watcher
         )
@@ -245,13 +312,12 @@ class RecordSendConfirmUI(SubUI):
     def open_resources(self):
         self._sec_label.set_text(
             self._seconds2txt(
-                int(
-                    round(
-                        self._get_duration_by_recoded_file()
-                    )
-                )
+                int(round(
+                    self._get_duration_by_recoded_file()
+                ))
             )
         )
+        self._update_button_status()
 
     def _get_duration_by_recoded_file(self):
         p = subprocess.Popen(
@@ -289,7 +355,7 @@ class RecordSendConfirmUI(SubUI):
         return float_duration
 
     def get_root_object(self):
-        return self._main_vbox
+        return self._root
 
 class RecordUI(SubUI):
     def __init__(self, change_to, psc, logger):
@@ -297,69 +363,73 @@ class RecordUI(SubUI):
         self._psc = psc
         self._logger = logger
 
-        # TODO:
-        temporary_measure_fix_overflow = -7
-
         self._seconds = 0
 
-        self._main_vbox = gtk.VBox(spacing=5)
+        main_vbox = Gtk.VBox(spacing=5)
 
-        self._status_label = gtk.Label()
-        self._status_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 50')
+        status_label = Gtk.Label()
+        status_label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 50')
         )
-        self._main_vbox.pack_start(self._status_label, False, False)
-
-        self._sec_label = gtk.Label()
-        self._sec_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 100')
-        )
-        self._main_vbox.pack_start(self._sec_label, False, False)
-
-        self._rec_hbox = gtk.HButtonBox()
-
-        self._rec_start_button = gtk.Button('録音開始')
-        self._rec_start_button.connect(
-            'clicked', self._on_rec_start_button_click
-        )
-        self._rec_start_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._rec_start_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        main_vbox.pack_start(
+            status_label,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
 
-        self._rec_hbox.pack_start(self._rec_start_button, False, False)
-
-        self._rec_stop_button = gtk.Button('録音停止')
-        self._rec_stop_button.connect(
-            'clicked', self._on_rec_stop_button_click
+        sec_label = Gtk.Label()
+        sec_label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 100')
         )
-        self._rec_stop_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._rec_stop_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        main_vbox.pack_start(
+            sec_label,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
 
-        self._rec_hbox.pack_start(self._rec_stop_button, False, False)
-        self._main_vbox.pack_start(self._rec_hbox)
+        hbuttonbox = Gtk.HButtonBox()
 
-        self._back_hbox = gtk.HButtonBox()
-        self._back_button = gtk.Button('戻る')
-        self._back_button.connect('clicked', self._on_back_button_clicked)
-        self._back_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        rec_start_button = self._append_button(
+            psc,
+            hbuttonbox,
+            '録音開始',
+            self._on_rec_start_button_click
         )
-        self._back_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        rec_stop_button = self._append_button(
+            psc,
+            hbuttonbox,
+            '録音停止',
+            self._on_rec_stop_button_click
         )
-        self._back_hbox.pack_start(self._back_button, False, False)
-        self._main_vbox.pack_start(self._back_hbox, False, False)
+
+        main_vbox.pack_start(
+            hbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+
+        hbuttonbox = Gtk.HButtonBox()
+
+        self._append_button(
+            psc,
+            hbuttonbox,
+            '戻る',
+            self._on_back_button_click
+        )
+
+        main_vbox.pack_start(
+            hbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
 
         self._statuses = {
             'wait':         'ボタンを押してください',
-            'recording':    '録音中',
+            'recording':    '<span color="red">録音中</span>',
         }
 
         self._ffmpeg_cli = (
@@ -368,12 +438,18 @@ class RecordUI(SubUI):
         self._status = self._statuses['wait']
 
         self._next_ui_name = ''
-        self._max_record_sec = 3 * 60 * 1000
+        self._max_record_sec = 5 * 60
+
+        self._status_label= status_label
+        self._sec_label = sec_label
+        self._rec_start_button = rec_start_button
+        self._rec_stop_button = rec_stop_button
+        self._root = main_vbox
 
     def _ffmpeg_terminate_watcher(self):
         if self._ffmpeg_process.poll() is not None:
             self._status = self._statuses['wait']
-            gobject.source_remove(self._time_count_up_gobject_id)
+            GObject.source_remove(self._time_count_up_gobject_id)
             self._elements_status_update()
             self._change_to(self._next_ui_name)
             return False
@@ -387,12 +463,12 @@ class RecordUI(SubUI):
 
     def _time_count_up(self):
         self._seconds += 1
-        if self._seconds >= self._max_record_sec:
-            self._ffmpeg_stop_request()
-            self._next_ui_name = 'RecordSendConfirmUI'
-            return False
-
         self._timer_update()
+        if self._seconds >= self._max_record_sec:
+            self._next_ui_name = 'RecordSendConfirmUI'
+            self._ffmpeg_stop_request()
+            return True
+
         return True
 
     def _on_rec_start_button_click(self, button):
@@ -406,12 +482,12 @@ class RecordUI(SubUI):
             shell   = True
         )
 
-        gobject.timeout_add(
+        GObject.timeout_add(
             100,
             self._ffmpeg_terminate_watcher
         )
 
-        self._time_count_up_gobject_id = gobject.timeout_add(
+        self._time_count_up_gobject_id = GObject.timeout_add(
             1000,
             self._time_count_up
         )
@@ -423,7 +499,7 @@ class RecordUI(SubUI):
         self._next_ui_name = 'RecordSendConfirmUI'
         self._ffmpeg_stop_request()
 
-    def _on_back_button_clicked(self, button):
+    def _on_back_button_click(self, button):
         if self._status is not self._statuses['wait']:
             self._ffmpeg_stop_request()
             self._next_ui_name = 'PhotostandUI'
@@ -431,7 +507,7 @@ class RecordUI(SubUI):
             self._change_to('PhotostandUI')
 
     def _elements_status_update(self):
-        self._status_label.set_text(self._status)
+        self._status_label.set_markup(self._status)
 
         self._rec_start_button.set_sensitive(
             self._status is self._statuses['wait']
@@ -448,7 +524,7 @@ class RecordUI(SubUI):
         self._elements_status_update()
 
     def get_root_object(self):
-        return self._main_vbox
+        return self._root
 
 class PlayVoiceUI(SubUI):
     def __init__(self, change_to, psc, sc, logger):
@@ -457,77 +533,69 @@ class PlayVoiceUI(SubUI):
         self._psc = psc
         self._sc = sc
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._scrolled_window = gtk.ScrolledWindow()
-        self._scrolled_window.set_policy(
-            gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC
-        )
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_size_request(584, 438)
 
         # ClientId, Date, Length, URI(nothing column)
-        self._list_store = gtk.ListStore(str, str, str, str)
-        self._tree_view = gtk.TreeView(self._list_store)
+        list_store = Gtk.ListStore(str, str, int, str)
+        tree_view = Gtk.TreeView(list_store)
+        tree_view.connect('cursor-changed', lambda _: self._elements_status_update())
 
-        renderer_text = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('ClientId', renderer_text, text=0)
+        column = Gtk.TreeViewColumn('ClientId', Gtk.CellRendererText(), text=0)
         column.set_sort_column_id(0)
-        self._tree_view.append_column(column)
+        tree_view.append_column(column)
 
-        renderer_text = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Date', renderer_text, text=1)
+        column = Gtk.TreeViewColumn('Date', Gtk.CellRendererText(), text=1)
         column.set_sort_column_id(1)
-        self._tree_view.append_column(column)
+        tree_view.append_column(column)
 
-        renderer_text = gtk.CellRendererText()
+        renderer_text = Gtk.CellRendererText()
         renderer_text.set_alignment(1.0, 0.0)
-        column = gtk.TreeViewColumn('Length', renderer_text, text=2)
+        column = Gtk.TreeViewColumn('Length', renderer_text, text=2)
         column.set_sort_column_id(2)
-        self._tree_view.append_column(column)
+        tree_view.append_column(column)
 
-        self._tree_view.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        tree_view.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
         )
-        self._tree_view.set_size_request(584, 438)
 
-        self._scrolled_window.add(self._tree_view)
-        self._main_hbox.pack_start(self._scrolled_window, False, False)
-
-        self._vbutton_box = gtk.VButtonBox()
-
-        # TODO:
-        temporary_measure_fix_overflow = -7
-
-        self._play_button = gtk.Button('再生')
-        self._play_button.connect('clicked', self._on_play_button_clicked)
-        self._play_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        scrolled_window.add(tree_view)
+        main_hbox.pack_start(
+            scrolled_window,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._play_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._vbutton_box.pack_start(self._play_button, False, False)
 
-        self._stop_button = gtk.Button('停止')
-        self._stop_button.connect('clicked', self._on_stop_button_clicked)
-        self._stop_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._stop_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._vbutton_box.pack_start(self._stop_button, False, False)
+        vbutton_box = Gtk.VButtonBox()
 
-        self._back_button = gtk.Button('戻る')
-        self._back_button.connect('clicked', self._on_back_button_clicked)
-        self._back_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        play_button = self._append_button(
+            psc,
+            vbutton_box,
+            '再生',
+            self._on_play_button_click
         )
-        self._back_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        stop_button = self._append_button(
+            psc,
+            vbutton_box,
+            '停止',
+            self._on_stop_button_click
         )
-        self._vbutton_box.pack_start(self._back_button, False, False)
+        back_button = self._append_button(
+            psc,
+            vbutton_box,
+            '戻る',
+            self._on_back_button_click
+        )
 
-        self._main_hbox.pack_start(self._vbutton_box, False, False)
+        main_hbox.pack_start(
+            vbutton_box,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
 
         self._statuses = {
             'wait'          : 0,
@@ -541,10 +609,19 @@ class PlayVoiceUI(SubUI):
             '| aplay -f dat -D hw:1'
         ).format(self._psc.get_download_record_voice_file_name())
 
+        self._play_button   = play_button
+        self._stop_button   = stop_button
+        self._back_button   = back_button
+        self._tree_view     = tree_view
+        self._list_store    = list_store
+        self._root          = main_hbox
+
     def _elements_status_update(self):
+        (_, tree_iterator) = self._tree_view.get_selection().get_selected()
         self._play_button.set_sensitive(
-            self._status is self._statuses['wait']
+            tree_iterator is not None and self._status is not self._statuses['playing']
         )
+
         self._tree_view.set_sensitive(
             self._status is self._statuses['wait']
         )
@@ -573,7 +650,7 @@ class PlayVoiceUI(SubUI):
 
         self._elements_status_update()
 
-    def _on_stop_button_clicked(self, button):
+    def _on_stop_button_click(self, button):
         if self._status is self._statuses['playing']:
             self._ffmpeg_stop_req()
 
@@ -612,12 +689,12 @@ class PlayVoiceUI(SubUI):
             shell   = True
         )
 
-        gobject.timeout_add(
+        GObject.timeout_add(
             100,
             self._ffmpeg_terminate_watcher
         )
 
-    def _on_play_button_clicked(self, button):
+    def _on_play_button_click(self, button):
         (model, tree_iterator) = self._tree_view.get_selection().get_selected()
 
         if tree_iterator is None:
@@ -634,37 +711,42 @@ class PlayVoiceUI(SubUI):
         self._download_thread.setDaemon(True)
         self._download_thread.start()
 
-        gobject.timeout_add(
+        GObject.timeout_add(
             100,
             self._aac_download_complete_watcher
         )
 
-    def _on_back_button_clicked(self, button):
+    def _on_back_button_click(self, button):
         if self._status is self._statuses['playing']:
             self._ffmpeg_stop_req()
 
         self._change_to('PhotostandUI')
 
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
 class ImageSendingUI(SubUI):
     def __init__(self, change_to, psc, sc):
         self._change_to = change_to
-        self._psc = psc
         self._sc = sc
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._label = gtk.Label()
-        self._label.set_text('送信中...')
-        self._label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        label = Gtk.Label('送信中...')
+        label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
         )
-        self._main_hbox.pack_start(self._label, False, False)
+        main_hbox.pack_start(
+            label,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+
+        self._root = main_hbox
 
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
     def on_load(self):
         self._upload_thread = threading.Thread(target=self._image_upload)
@@ -681,75 +763,72 @@ class ImageSendingUI(SubUI):
 class SetSendPhotostandIDsUI(SubUI):
     def __init__(self, change_to_with_param, psc, sc, logger, change_to):
         self._sc = sc
-        self._psc = psc
-        self._logger = logger
         self._change_to_with_param = change_to_with_param
-        self._change_to = change_to
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._scrolled_window = gtk.ScrolledWindow()
-        self._scrolled_window.set_policy(
-            gtk.POLICY_AUTOMATIC,
-            gtk.POLICY_AUTOMATIC
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_size_request(584, 438)
+
+        list_store = Gtk.ListStore(bool, str)
+
+        tree_view = Gtk.TreeView(model=list_store)
+
+        tree_view.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
         )
 
-        self._list_store = gtk.ListStore(bool, str)
-        self._tree_view = gtk.TreeView(model=self._list_store)
-        self._tree_view.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-
-        renderer_toggle = gtk.CellRendererToggle()
+        renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect('toggled', self._on_cell_toggled)
-        column = gtk.TreeViewColumn('Send?', renderer_toggle, active=0)
-        self._tree_view.append_column(column)
 
-        renderer_text = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('ID', renderer_text, text=1)
-        self._tree_view.append_column(column)
+        column = Gtk.TreeViewColumn('Send?', renderer_toggle, active=0)
+        tree_view.append_column(column)
 
-        self._tree_view.set_size_request(584, 438)
-        self._tree_view.get_selection().set_mode(gtk.SELECTION_NONE)
-        self._tree_view.set_can_focus(False)
+        column = Gtk.TreeViewColumn('ID', Gtk.CellRendererText(), text=1)
+        tree_view.append_column(column)
 
-        self._scrolled_window.add(self._tree_view)
-        self._main_hbox.pack_start(self._scrolled_window, False, False)
+        tree_view.get_selection().set_mode(Gtk.ShadowType.NONE)
+        tree_view.set_can_focus(False)
 
-        self._vbuttonbox = gtk.VButtonBox()
+        scrolled_window.add(tree_view)
 
-        # TODO:
-        temporary_measure_fix_overflow = -7
-
-        self._ok_button = gtk.Button('OK')
-        self._ok_button.connect('clicked', self._on_ok_button_clicked)
-        self._ok_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        main_hbox.pack_start(
+            scrolled_window,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._ok_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._vbuttonbox.pack_start(self._ok_button, False, False)
 
-        self._back_button= gtk.Button('戻る')
-        self._back_button.connect('clicked', self._on_back_button_clicked)
-        self._back_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._back_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._vbuttonbox.pack_start(self._back_button, False, False)
+        vbuttonbox = Gtk.VButtonBox()
 
-        self._main_hbox.pack_start(self._vbuttonbox, False, False)
+        ok_button = self._append_button(
+            psc,
+            vbuttonbox,
+            'OK',
+            self._on_ok_button_clicked
+        )
+
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '戻る',
+            lambda _: change_to(self._prev_ui_name)
+        )
+
+        main_hbox.pack_start(
+            vbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
 
         self._next_ui_name = None
+        self._list_store = list_store
+        self._ok_button = ok_button
+        self._root = main_hbox
 
     def get_root_object(self):
-        return self._main_hbox
-
-    def _on_back_button_clicked(self, button):
-        self._change_to(self._prev_ui_name)
+        return self._root
 
     def _on_ok_button_clicked(self, button):
         to_photostand_ids_array = []
@@ -783,13 +862,12 @@ class SetSendPhotostandIDsUI(SubUI):
             self._list_store.append([True, str(photostand)])
 
         if photostands_length is 0:
-            # TODO: Associated photostands count is 0 Error
+            # NOTE: Associated photostands count is 0 Error
             pass
 
         elif photostands_length is 1:
             self._on_ok_button_clicked(None)
             return
-            #pass
 
         self._update_ok_button_sensitive()
 
@@ -803,50 +881,54 @@ class ImageSendConfirmUI(SubUI):
         self._change_to_with_param = change_to_with_param
         self._psc = psc
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._image = gtk.Image()
-        self._main_hbox.pack_start(self._image, False, False)
+        image = Gtk.Image()
 
-        # TODO:
-        temporary_measure_fix_overflow = -7
-
-        self._vbuttonbox = gtk.VButtonBox()
-
-        self._send_button = gtk.Button('送信する')
-        self._send_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        main_hbox.pack_start(
+            image,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._send_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._send_button.connect('clicked', self._on_send_button_clicked)
-        self._vbuttonbox.pack_start(self._send_button, False, False)
 
-        self._cancel_button = gtk.Button('撮り直す')
-        self._cancel_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._cancel_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._cancel_button.connect('clicked', self._on_cancel_button_clicked)
-        self._vbuttonbox.pack_start(self._cancel_button, False, False)
+        vbuttonbox = Gtk.VButtonBox()
 
-        self._main_hbox.pack_start(self._vbuttonbox, False, False)
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '送信',
+            self._on_send_button_click
+        )
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '撮り直し',
+            self._on_cancel_button_click
+        )
+
+        main_hbox.pack_start(
+            vbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+
+        self._image = image
+        self._root  = main_hbox
 
     def open_resources(self):
         self._image.set_from_file(
             self._psc.get_capture_selfy_image_file_name(),
         )
 
-    def _on_cancel_button_clicked(self, button):
+    def _on_cancel_button_click(self, button):
         os.unlink(
             self._psc.get_capture_selfy_image_file_name(),
         )
         self._change_to('CaptureUI')
 
-    def _on_send_button_clicked(self, button):
+    def _on_send_button_click(self, button):
         self._change_to_with_param(
             'SetSendPhotostandIDsUI',
             {
@@ -856,32 +938,33 @@ class ImageSendConfirmUI(SubUI):
         )
 
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
 class ShutterUI(SubUI):
     def __init__(self, change_to):
         self._change_to = change_to
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._image = gtk.Image()
-        self._image.set_from_pixbuf(
-            gtk.gdk.pixbuf_new_from_array(
-                np.tile(np.uint8([0, 0, 0]), (438, 584, 1)),
-                gtk.gdk.COLORSPACE_RGB, 8
-            )
+        image = Gtk.Image()
+        image.set_from_pixbuf(
+            self._create_dummy_pixbuf(584, 438, 0, 0, 0)
         )
 
-        self._main_hbox.pack_start(self._image, False, False)
+        main_hbox.pack_start(
+            image,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
 
-    def _next_ui(self):
-        self._change_to('ImageSendConfirmUI')
+        self._root = main_hbox
 
     def on_load(self):
-        gobject.timeout_add(100, self._next_ui)
+        GObject.timeout_add(100, lambda: self._change_to('ImageSendConfirmUI'))
 
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
 class CaptureUI(SubUI):
     def __init__(self, change_to, psc, logger):
@@ -889,53 +972,48 @@ class CaptureUI(SubUI):
         self._psc = psc
         self._logger = logger
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._image = gtk.Image()
-        self._image.set_from_pixbuf(
-            gtk.gdk.pixbuf_new_from_array(
-                np.tile(np.uint8([0, 0, 0]), (438, 584, 1)),
-                gtk.gdk.COLORSPACE_RGB, 8
+        image = Gtk.Image()
+
+        image.set_from_pixbuf(
+            self._create_dummy_pixbuf(
+                584, 438,
+                0, 0, 0
             )
         )
-        self._main_hbox.pack_start(self._image, False, False)
 
-        # TODO:
-        temporary_measure_fix_overflow = -7
-
-        self._vbuttonbox = gtk.VButtonBox()
-
-        self._shutter_button = gtk.Button('撮影')
-        self._shutter_button.set_size_request(
-            204 + temporary_measure_fix_overflow,
-            64
+        main_hbox.pack_start(
+            image,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._shutter_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._shutter_button.connect(
-            'clicked',
+
+        vbuttonbox = Gtk.VButtonBox()
+
+        self._append_button(
+            psc, vbuttonbox,
+            '撮影',
             self._on_shutter_button_clicked
         )
-        self._vbuttonbox.pack_start(self._shutter_button, False, False)
 
-        self._back_to_photostand_button = gtk.Button(u'戻る')
-        self._back_to_photostand_button.set_size_request(
-            204 + temporary_measure_fix_overflow,
-            64
-        )
-        self._back_to_photostand_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._back_to_photostand_button.connect(
-            'clicked',
-            self._on_back_to_photostand_button_clicked
-        )
-        self._vbuttonbox.pack_start(
-            self._back_to_photostand_button, False, False
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '戻る',
+            lambda _: change_to('PhotostandUI')
         )
 
-        self._main_hbox.pack_start(self._vbuttonbox, False, False)
+        main_hbox.pack_start(
+            vbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+
+        self._root  = main_hbox
+        self._image = image
 
         self._cam = None
         self._last_frame = None
@@ -953,22 +1031,19 @@ class CaptureUI(SubUI):
 
         self._change_to('ShutterUI')
 
-    def _on_back_to_photostand_button_clicked(self, button):
-        self._change_to('PhotostandUI')
-
     def _refresh_frame(self):
         _, new_frame = self._cam.read()
         new_frame = cv2.resize(new_frame, (584, 438))
 
         self._image.set_from_pixbuf(
-            gtk.gdk.pixbuf_new_from_array(
+            gtk_gdk_pixbuf_new_from_array(
                 cv2.cvtColor(
                     cv2.flip(new_frame, 1),
                     cv2.COLOR_BGR2RGB
                 ),
-                gtk.gdk.COLORSPACE_RGB,
+                GdkPixbuf.Colorspace.RGB,
                 8
-            )
+            ).copy()
         )
 
         self._image.show_all()
@@ -992,7 +1067,7 @@ class CaptureUI(SubUI):
             round(1000.0 / framerate)
         )
 
-        self._refresh_timeout_id = gobject.timeout_add(
+        self._refresh_timeout_id = GObject.timeout_add(
             refresh_rate_ms,
             self._refresh_frame
         )
@@ -1001,95 +1076,71 @@ class CaptureUI(SubUI):
 
     def close_resources(self):
         if self._refresh_timeout_id is not None:
-            gobject.source_remove(self._refresh_timeout_id)
+            GObject.source_remove(self._refresh_timeout_id)
             self._refresh_timeout_id = None
 
         if self._cam:
             self._cam.release()
 
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
 class PhotostandUI(SubUI):
     def __init__(self, change_to, psc, sc):
-        self._change_to = change_to
-        self._psc = psc
-        self._sc = sc
-        self._last_index = -1
+        # init local variables
+        self._sc            = sc
+        self._last_index    = -1
 
+        main_hbox = Gtk.HBox(spacing=2)
 
-        self._main_hbox = gtk.HBox(spacing=2)
-
-        self._image = gtk.Image()
-        self._image.set_from_pixbuf(
-            gtk.gdk.pixbuf_new_from_array(
-                np.tile(
-                    np.uint8([0, 127, 127]),
-                    (438, 584, 1)
-                ),
-                gtk.gdk.COLORSPACE_RGB,
-                8
+        image = Gtk.Image()
+        image.set_from_pixbuf(
+            self._create_dummy_pixbuf(
+                584, 438,
+                0, 127, 127
             )
         )
-        self._main_hbox.pack_start(self._image, False, False)
-
-        self._vbuttonbox = gtk.VButtonBox()
-
-        # TODO:
-        temporary_measure_fix_overflow = -7
-
-        self._change_to_capture_ui_button = gtk.Button('撮影画面へ')
-        self._change_to_capture_ui_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._change_to_capture_ui_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._change_to_capture_ui_button.connect(
-            'clicked',
-            self._on_change_ui_buttons_clicked,
-            'CaptureUI'
-        )
-        self._vbuttonbox.pack_start(
-            self._change_to_capture_ui_button, False, False
+        main_hbox.pack_start(
+            image,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
 
-        self._change_to_record_ui_button = gtk.Button('録音画面へ')
-        self._change_to_record_ui_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+        vbuttonbox = Gtk.VButtonBox()
+
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '撮影画面へ',
+            lambda _: change_to('CaptureUI')
         )
-        self._change_to_record_ui_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '録音画面へ',
+            lambda _: change_to('RecordUI')
         )
-        self._change_to_record_ui_button.connect(
-            'clicked',
-            self._on_change_ui_buttons_clicked,
-            'RecordUI'
-        )
-        self._vbuttonbox.pack_start(
-            self._change_to_record_ui_button, False, False
+        self._append_button(
+            psc,
+            vbuttonbox,
+            '再生画面へ',
+            lambda _: change_to('PlayVoiceUI')
         )
 
-        self._change_to_play_voice_ui_button = gtk.Button('再生画面へ')
-        self._change_to_play_voice_ui_button.get_child().modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
-        )
-        self._change_to_play_voice_ui_button.set_size_request(
-            204 + temporary_measure_fix_overflow, 64
-        )
-        self._change_to_play_voice_ui_button.connect(
-            'clicked',
-            self._on_change_ui_buttons_clicked,
-            'PlayVoiceUI'
-        )
-        self._vbuttonbox.pack_start(
-            self._change_to_play_voice_ui_button, False, False
+        main_hbox.pack_start(
+            vbuttonbox,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
 
-        self._main_hbox.pack_start(self._vbuttonbox, False, False)
+        self._image = image
+        self._root = main_hbox
 
         self._update_image()
-        gobject.timeout_add(
+
+        GObject.timeout_add(
             1500,
             self._update_image
         )
@@ -1099,14 +1150,7 @@ class PhotostandUI(SubUI):
 
         if len(json_obj) is 0:
             self._image.set_from_pixbuf(
-                gtk.gdk.pixbuf_new_from_array(
-                    np.tile(
-                        np.uint8([192, 0, 0]),
-                        (438, 584, 1)
-                    ),
-                    gtk.gdk.COLORSPACE_RGB,
-                    8
-                )
+                self._create_dummy_pixbuf(584, 438, 192, 0, 0)
             )
             return True
 
@@ -1123,71 +1167,73 @@ class PhotostandUI(SubUI):
             )
         else:
             self._image.set_from_pixbuf(
-                gtk.gdk.pixbuf_new_from_array(
-                    np.tile(
-                        np.uint8([0, 0, 192]),
-                        (438, 584, 1)
-                    ),
-                    gtk.gdk.COLORSPACE_RGB,
-                    8
-                )
+                self._create_dummy_pixbuf(584, 438, 0, 0, 192)
             )
 
         return True
 
-
-    def _on_change_ui_buttons_clicked(self, button, ui_name):
-        self._change_to(ui_name)
-
     def get_root_object(self):
-        return self._main_hbox
+        return self._root
 
 
 class InitializeServerConnectInstanceUI(SubUI):
     def __init__(self, change_to, psc):
-        self._change_to = change_to
+        main_vbox = Gtk.VBox(spacing=2)
 
-        self._main_hbox = gtk.HBox(spacing=2)
+        main_label = Gtk.Label('初期データをサーバーから受信しています。')
+        main_label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
+        )
 
-        self._main_label = gtk.Label()
-        self._main_label.set_text(
-            '初期データをサーバーから受信しています。'
+        main_vbox.pack_start(
+            main_label,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._main_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+
+        sub_label = Gtk.Label('この状態が1分以上続く場合は報告してください。')
+        sub_label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 15')
         )
-        self._sub_label = gtk.Label()
-        self._sub_label.set_text(
-            'この状態が1分以上続く場合は報告してください。'
+
+        main_vbox.pack_start(
+            sub_label,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
-        self._sub_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 15')
-        )
-        self._main_vbox = gtk.VBox(spacing=2)
-        self._main_vbox.pack_start(self._main_label, False, False)
-        self._main_vbox.pack_start(self._sub_label, False, False)
+
+        self._root = main_vbox
 
     def get_root_object(self):
-        return self._main_vbox
+        return self._root
 
+# NOTE: Debug UI
 class ReadyUI(SubUI):
     def __init__(self, change_to, psc):
-        self._change_to = change_to
+        main_vbox = Gtk.VBox(spacing=2)
 
-        self._main_hbox = gtk.HBox(spacing=2)
-
-        self._main_label = gtk.Label()
-        self._main_label.set_text(
+        main_label = Gtk.Label()
+        main_label.set_text(
             'Ready.'
         )
-        self._main_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+
+        main_label.modify_font(
+            Pango.FontDescription(psc.get_default_font() + ' 20')
         )
-        self._main_vbox = gtk.VBox(spacing=2)
-        self._main_vbox.pack_start(self._main_label, False, False)
+
+        main_vbox.pack_start(
+            main_label,
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
+
+        self._root = main_vbox
 
     def get_root_object(self):
-        return self._main_vbox
+        return self._root
 
 class UIManager(object):
     def __init__(self, window, psc, logger):
@@ -1272,11 +1318,15 @@ class UIManager(object):
 
             self._window.remove(old_ui.get_root_object())
 
-
         self._logger.debug('Change UI from {} to {}'.format(self._last_ui, name))
         new_ui = self._ui_instances[name]
         new_ui.open_resources()
-        self._window.add(new_ui.get_root_object())
+        self._window.pack_start(
+            new_ui.get_root_object(),
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
         self._last_ui = name
         self._window.show_all()
         new_ui.on_load()
@@ -1298,7 +1348,12 @@ class UIManager(object):
         new_ui = self._ui_instances[name]
         new_ui.set_param(param)
         new_ui.open_resources()
-        self._window.add(new_ui.get_root_object())
+        self._window.pack_start(
+            new_ui.get_root_object(),
+            expand  = False,
+            fill    = False,
+            padding = 0
+        )
         self._last_ui = name
         self._window.show_all()
         new_ui.on_load()
@@ -1310,23 +1365,21 @@ class InfoBar(object):
         self._psc = psc
         self._logger = logger
 
-        self._info_label = gtk.Label()
+        self._info_label = Gtk.Label()
 
         self._info_label.modify_font(
-            pango.FontDescription(psc.get_default_font() + ' 20')
+            Pango.FontDescription(psc.get_default_font() + ' 20')
         )
 
         self._refresh()
 
         # auto refresh (interval: 1000ms)
-        gobject.timeout_add(
+        GObject.timeout_add(
             1000,
             self._refresh
         )
 
-        parent_frame.add(
-            self._info_label
-        )
+        parent_frame.add(self._info_label)
 
     def _get_temperature(self):
         file_name = self._psc.get_sensor_daemon_socket_file_name()
@@ -1393,47 +1446,46 @@ class InfoBar(object):
 
 class MainWindow(object):
     def __init__(self, psc, logger):
-        self._window = gtk.Window()
-        self._window.set_border_width(5)
-        self._window.set_title('SAVACS UI')
-        self._window.set_size_request(800, 480)
-        self._window.set_resizable(False)
-        self._window.connect('destroy_event', self._end_application)
-        self._window.connect('delete_event', self._end_application)
+        window = Gtk.Window()
+        window.set_border_width(1)
+        window.set_title('SAVACS UI')
+        window.set_size_request(800, 480)
+        window.set_resizable(False)
+        window.connect('destroy_event', self._end_application)
+        window.connect('delete_event', self._end_application)
 
         # info bar and main window vbox
-        self._master_vbox = gtk.VBox(spacing=2)
+        master_vbox = Gtk.VBox()
 
         # mainbox (edit box connection by UIManager)
-        self._main_box = gtk.VBox()
-        self._master_vbox.add(self._main_box)
+        main_box = Gtk.VBox()
+        master_vbox.pack_start(
+            main_box,
+            expand  = True,
+            fill    = False,
+            padding = 0
+        )
 
         # infobar (edit bar by InfoBar)
-        self._info_frame = gtk.Frame()
-        self._info_frame.set_size_request(width=0, height=30)
-        self._info_frame.set_shadow_type(gtk.SHADOW_IN)
-        self._master_vbox.pack_start(
-            self._info_frame,
-            False, False, 0
+        info_frame = Gtk.Frame()
+        info_frame.set_size_request(width=0, height=30)
+        info_frame.set_shadow_type(Gtk.ShadowType.IN)
+        master_vbox.pack_start(
+            info_frame,
+            expand  = False,
+            fill    = False,
+            padding = 0
         )
 
-        # TODO: search diff pack_start / add
+        InfoBar(info_frame, psc, logger)
+        UIManager(main_box, psc, logger)
 
-        self._info_bar = InfoBar(
-            self._info_frame,
-            psc,
-            logger
-        )
-        self._ui_manager = UIManager(
-            self._main_box,
-            psc,
-            logger
-        )
+        window.add(master_vbox)
 
-        self._window.add(self._master_vbox)
+        self._window = window
 
     def _end_application(self, window, event, data=None):
-        gtk.main_quit()
+        Gtk.main_quit()
 
         threads = threading.enumerate()
         main_thread = threading.currentThread()
@@ -1447,7 +1499,7 @@ class MainWindow(object):
 
     def main(self):
         self._window.show_all()
-        gtk.main()
+        Gtk.main()
 
 class ServerConnection(object):
     def __init__(self, photostand_config, logger):
@@ -1801,7 +1853,7 @@ class ServerConnection(object):
                     continue
 
                 new_json_object[photostand_id]['pixbuf'] = \
-                    gtk.gdk.pixbuf_new_from_file_at_size(
+                    GdkPixbuf.Pixbuf.new_from_file_at_size(
                         self._psc.get_download_selfy_image_file_name(),
                         584, 438
                     )
@@ -1861,10 +1913,9 @@ def main():
     logger = logging.getLogger(__name__)
     handler = logging.StreamHandler()
     handler.setFormatter(
-        # logging.Formatter("[%(asctime)s] [%(threadName)s] %(message)s")
         coloredlogs.ColoredFormatter(fmt="[%(asctime)s] [%(threadName)s] %(message)s")
     )
-    handler.setLevel(logging.INFO)
+    handler.setLevel(logging.DEBUG)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     logger.propagate = False
@@ -1897,10 +1948,6 @@ def main():
 
     logger.info('URI Base:   ' + psc.get_server_uri_base())
     logger.info('CPU Serial: ' + psc.get_cpu_serial())
-
-    # init multithreading
-    gobject.threads_init()
-    gtk.gdk.threads_init()
 
     # initializing MainWindow
     main_window = MainWindow(psc, logger)
