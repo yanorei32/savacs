@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from ConfigParser import ParsingError, MissingSectionHeaderError, NoSectionError, NoOptionError
+from configparser import ParsingError, MissingSectionHeaderError, NoSectionError, NoOptionError
 from photostand_config import PhotostandConfig, FailedToReadSerialNumber
 from sys import exit
 from os import unlink
@@ -217,6 +217,8 @@ class SerialPortWatcher:
 
             # delete \r \n
             line = line[:-2]
+
+            line = line.decode('utf-8')
 
             if not self._sample_regex_pattern.match(line):
                 self._logger.error('Fail line: ' + line)
@@ -465,7 +467,7 @@ class AfUnixServerThread(threading.Thread):
         while not self._stop_event.is_set():
             try:
                 conn, _ = s.accept()
-                request = conn.recv(1024)
+                request = conn.recv(1024).decode('utf-8')
 
                 # Is sensor data found
                 if self._lsv.get_last_update_time() is False:
@@ -507,7 +509,7 @@ class AfUnixServerThread(threading.Thread):
                     'last_update_time': '{0:%Y-%m-%d %H:%M:%S.%f}'.format(
                         self._lsv.get_last_update_time()
                     )
-                }))
+                }).encode('utf-8'))
 
             except socket.timeout:
                 pass
