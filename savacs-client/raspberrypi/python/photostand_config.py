@@ -1,4 +1,4 @@
-import ConfigParser
+import configparser
 import errno
 import os
 
@@ -88,7 +88,7 @@ class PhotostandConfig(object):
                 self._CONFIG_FILENAME
             )
 
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
 
         config.read(self._CONFIG_FILENAME)
 
