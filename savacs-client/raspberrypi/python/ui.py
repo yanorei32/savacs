@@ -17,7 +17,7 @@ import re
 import requests
 import subprocess
 import sys
-import ConfigParser
+import configparser
 import coloredlogs, logging
 import traceback
 import errno
@@ -303,7 +303,7 @@ class RecordSendConfirmUI(SubUI):
         )
 
     def _ffmpeg_stop_request(self):
-        out, err = self._ffmpeg_process.communicate('q')
+        out, err = self._ffmpeg_process.communicate('q'.encode('utf-8'))
 
     def _on_stop_button_click(self, button):
         self._on_play_end = None
@@ -332,7 +332,7 @@ class RecordSendConfirmUI(SubUI):
         decoded_data = None
 
         try:
-            decoded_data = json.loads(out)
+            decoded_data = json.loads(out.decode('utf-8'))
 
         except ValueError:
             self._logger.error('ffprobe returned invalid json.')
@@ -493,7 +493,7 @@ class RecordUI(SubUI):
         )
 
     def _ffmpeg_stop_request(self):
-        out, err = self._ffmpeg_process.communicate('q')
+        out, err = self._ffmpeg_process.communicate('q'.encode('utf-8'))
 
     def _on_rec_stop_button_click(self, button):
         self._next_ui_name = 'RecordSendConfirmUI'
@@ -539,7 +539,7 @@ class PlayVoiceUI(SubUI):
         scrolled_window.set_size_request(584, 438)
 
         # ClientId, Date, Length, URI(nothing column)
-        list_store = Gtk.ListStore(str, str, int, str)
+        list_store = Gtk.ListStore(str, str, str, str)
         tree_view = Gtk.TreeView(list_store)
         tree_view.connect('cursor-changed', lambda _: self._elements_status_update())
 
@@ -633,7 +633,7 @@ class PlayVoiceUI(SubUI):
         )
 
     def _ffmpeg_stop_req(self):
-        out, err = self._ffmpeg_process.communicate('q')
+        out, err = self._ffmpeg_process.communicate('q'.encode('utf-8'))
 
     def on_load(self):
         voice_dictionary = self._sc.get_resentry_record_voices_object()
@@ -644,7 +644,7 @@ class PlayVoiceUI(SubUI):
             self._list_store.append([
                 voice['send_from'],
                 voice['created_at'],
-                voice['duration'],
+                self._seconds2txt(voice['duration']),
                 voice['uri'],
             ])
 
@@ -1159,11 +1159,11 @@ class PhotostandUI(SubUI):
         if len(json_obj) <= self._last_index:
             self._last_index = 0
 
-        d = json_obj[json_obj.keys()[self._last_index]]
+        d = json_obj[list(json_obj.keys())[self._last_index]]
 
         if d['status'] is 1:
             self._image.set_from_pixbuf(
-                json_obj[json_obj.keys()[self._last_index]]['pixbuf']
+                json_obj[list(json_obj.keys())[self._last_index]]['pixbuf']
             )
         else:
             self._image.set_from_pixbuf(
@@ -1307,7 +1307,7 @@ class UIManager(object):
         self._change_to('PhotostandUI')
 
     def _change_to(self, name):
-        if not self._ui_instances.has_key(name):
+        if name not in self._ui_instances:
             self._logger.critical('UI Not found: ' + name)
             return
 
@@ -1332,7 +1332,7 @@ class UIManager(object):
         new_ui.on_load()
 
     def _change_to_with_param(self, name, param):
-        if not self._ui_instances.has_key(name):
+        if name not in self._ui_instances:
             self._logger.critical('UI Not found: ' + name)
             return
 
@@ -1581,7 +1581,7 @@ class ServerConnection(object):
 
             r.raise_for_status()
 
-            if r.headers.keys().count('content-type') is not 0:
+            if list(r.headers.keys()).count('content-type') is not 0:
                 if expected_mime_type not in r.headers['content-type']:
                     self._logger.error(
                         'UnknownMimeType: ' + r.headers['content-type']
@@ -1623,15 +1623,15 @@ class ServerConnection(object):
         content = ''
 
         try:
+            params = dict(self._baseData.items())
+            params.update(dict(additional_parameter.items()))
+
             r = requests.post(
                 self._psc.get_server_uri_base() + uri,
 
                 timeout =
                     self._psc.get_server_timeout(),
-                data =
-                    dict(
-                        self._baseData.items() + additional_parameter.items()
-                    ),
+                data = params,
                 files =
                     additional_file,
             )
@@ -1683,6 +1683,8 @@ class ServerConnection(object):
         if response is False:
             return False
 
+        response = response.decode('utf-8')
+
         if response is '':
             return []
 
@@ -1706,7 +1708,10 @@ class ServerConnection(object):
         if response is False:
             return False
 
-        dec_obj = None
+        response = response.decode('utf-8')
+
+        if response is '':
+            return False
 
         try:
             dec_obj = json.loads(response)
@@ -1907,7 +1912,6 @@ class ServerConnection(object):
         return self._associated_photostands
 
 
-FileNotFoundError = IOError
 
 def main():
     logger = logging.getLogger(__name__)
@@ -1933,10 +1937,10 @@ def main():
 
     except (
             FileNotFoundError,
-            ConfigParser.ParsingError,
-            ConfigParser.MissingSectionHeaderError,
-            ConfigParser.NoSectionError,
-            ConfigParser.NoOptionError,
+            configparser.ParsingError,
+            configparser.MissingSectionHeaderError,
+            configparser.NoSectionError,
+            configparser.NoOptionError,
             ValueError
         ):
 
