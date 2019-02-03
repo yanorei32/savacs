@@ -25,6 +25,27 @@ sudo umount /mnt
 
 ## Setup
 
+### Initialization
+```sh
+# Purge editors
+sudo apt purge nano ed
+
+# Purge mDNS
+sudo apt purge \
+	avahi-daemon \
+	samba-common \
+	cifs-utils
+
+# Purge network filesystem client
+sudo apt purge nfs-common
+
+sudo apt autoremove --purge
+
+# Fix timezone
+sudo dpkg-reconfigure tzdata
+# Enter your timezone
+```
+
 ### Install your authorized_keys
 Install your `~/.ssh/authorized_keys`
 
@@ -100,13 +121,30 @@ sudo dpkg-reconfigure xserver-xorg-legacy
 curl -kL https://bootstrap.pypa.io/get-pip.py | sudo python2
 ```
 
-### Install python libs
+### Build/Install Python libs
 ```sh
-# build deps
+# deps
 sudo apt install \
-	python2.7-dev
+	python2.7-dev \
+	libgtk2.0-dev \
+	libgirepository1.0-dev \
+	cmake \
+	libjpeg-dev
 
-# install numpy ( dep: OpenCV, ui.py, etc... )
+# build / install PyGObject
+sudo pip install PyGObject
+
+# build / install numpy
 sudo pip install numpy
+
+# build / install OpenCV
+wget https://github.com/opencv/opencv/archive/4.0.1.zip
+unzip 4.0.1.zip
+mkdir opencv-4.0.1/build
+cd opencv-4.0.1/build
+~/savacs/savacs-client/raspberrypi/setup/opencv-4.0.1-cmake.sh
+time make -j4
+sudo make install
 ```
+
 
