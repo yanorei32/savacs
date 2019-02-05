@@ -33,11 +33,15 @@
 | [KF2510 Fermale Pin Connector Terminal](https://www.aliexpress.com/item//32825549837.html)                   | AliExpress    | 0.73 USD      |
 | [USB Extension Cable](https://www.aliexpress.com/item//32908620406.html)                                     | AliExpress    | 0.64 USD      |
 | [MicroUSB Splitter](https://www.aliexpress.com/item//32837528901.html)                                       | AliExpress    | 1.07 USD      |
-| [USB DAC (A) 3pcs](https://www.aliexpress.com/item//32659748710.html)                                        | AliExpress    | 1.80 USD      |
-| [USB DAC (B) 3pcs](https://www.aliexpress.com/item//32673744597.html)                                        | AliExpress    | 1.80 USD      |
 | [3.5mm Stereo Plug 2pcs](https://www.aliexpress.com/item//32821667409.html)                                  | AliExpress    | 0.94 USD      |
+| [USB DAC](https://www.aliexpress.com/item//32618004836.html)                                                 | AliExpress    | 0.80 USD      |
 | [Main Tapping Screw 150pcs](https://www.monotaro.com/p/0551/3322/)                                           | MonotaRO      | 459 + Tax JPY |
 | [M2x8 Screw 50pcs](https://www.monotaro.com/p/4926/3426/)                                                    | MonotaRO      | 439 + Tax JPY |
 | [M2 Nut 60pcs](https://www.monotaro.com/p/2344/2642/)                                                        | MonotaRO      | 429 + Tax JPY |
 | [M3x8 countersunk screw](https://www.monotaro.com/p/0830/6864/)                                              | MonotaRO      | 557 + Tax JPY |
+
+<!--
+| [USB DAC (A) 3pcs](https://www.aliexpress.com/item//32659748710.html)                                        | AliExpress    | 1.80 USD      |
+| [USB DAC (B) 3pcs](https://www.aliexpress.com/item//32673744597.html)                                        | AliExpress    | 1.80 USD      |
+-->
 

@@ -30,14 +30,15 @@ sudo umount /mnt
 # Purge editors
 sudo apt purge nano ed
 
-# Purge mDNS
+# Purge mDNS packages
 sudo apt purge \
 	avahi-daemon \
 	samba-common \
 	cifs-utils
 
 # Purge network filesystem client
-sudo apt purge nfs-common
+sudo apt purge \
+	nfs-common
 
 sudo apt autoremove --purge
 
@@ -81,6 +82,17 @@ sudo ./install-basics.sh
 * `~pi/.xinitrc`
 * `~pi/motion.conf`
 
+### Create RAM Disk
+```
+sudo -E vim /etc/fstab
+```
+
+and append this line
+
+```/etc/tmpfs
+tmpfs /ramdisk tmpfs defaults,size=256m 0 0
+```
+
 ### Reboot
 
 ```sh
@@ -110,7 +122,9 @@ vim # and run :PlugInstall, :q in Vim
 ```sh
 sudo apt install \
 	xinit \
-	xserver-xorg-core
+	xserver-xorg-core \
+	x11-xserver-utils \
+	fonts-vlgothic
 
 sudo dpkg-reconfigure xserver-xorg-legacy
 # Select anybody
@@ -118,33 +132,61 @@ sudo dpkg-reconfigure xserver-xorg-legacy
 
 ### Install pip
 ```sh
-curl -kL https://bootstrap.pypa.io/get-pip.py | sudo python2
+curl -kL https://bootstrap.pypa.io/get-pip.py | sudo python3
 ```
 
-### Build/Install Python libs
+### Build v4l2loopback
 ```sh
 # deps
 sudo apt install \
-	python2.7-dev \
+	raspberrypi-kernel-headers
+
+# clone repo
+git clone https://github.com/umlaeute/v4l2loopback
+
+# build
+cd v4l2loopback
+make -j4
+sudo make install
+
+# reboot
+```
+
+### Build/Install Python libs / deps
+```sh
+# deps
+sudo apt install \
+	ffmpeg \
+	python3-dev \
 	libgtk2.0-dev \
 	libgirepository1.0-dev \
 	cmake \
 	libjpeg-dev
 
-# build / install PyGObject
-sudo pip install PyGObject
+# install PyGObject
+sudo pip3 install PyGObject
 
-# build / install numpy
-sudo pip install numpy
+# install numpy
+sudo pip3 install numpy
 
 # build / install OpenCV
 wget https://github.com/opencv/opencv/archive/4.0.1.zip
 unzip 4.0.1.zip
 mkdir opencv-4.0.1/build
 cd opencv-4.0.1/build
+# remove CMakeCache.txt if rebuild.
 ~/savacs/savacs-client/raspberrypi/setup/opencv-4.0.1-cmake.sh
-time make -j4
+time make -j4 # In my raspberry pi, user 34m26.136s.
 sudo make install
+
+# install other libs
+sudo pip3 install requests
+sudo pip3 install coloredlogs
+sudo pip3 install pyserial
 ```
 
+### Insatall motion
+```sh
+sudo apt install motion
+```
 
