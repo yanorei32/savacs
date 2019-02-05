@@ -474,7 +474,7 @@ class AfUnixServerThread(threading.Thread):
                     conn.send(json.dumps({
                         'status': 'error',
                         'status_description': 'No DATA',
-                    }))
+                    }).encode('utf-8'))
 
                     continue
 
@@ -483,7 +483,7 @@ class AfUnixServerThread(threading.Thread):
                     conn.send(json.dumps({
                         'status': 'error',
                         'status_description': 'Not valid request',
-                    }))
+                    }).encode('utf-8'))
 
                     self._logger.warning('Recieve request ({}). but not valid.'.format(request))
                     continue
@@ -496,7 +496,7 @@ class AfUnixServerThread(threading.Thread):
                     conn.send(json.dumps({
                         'status': 'error',
                         'status_description': 'Key not found from dictionary',
-                    }))
+                    }).encode('utf-8'))
 
                     self._logger.warning('Recieve request ({}). but not found resources.'.format(request))
                     continue
