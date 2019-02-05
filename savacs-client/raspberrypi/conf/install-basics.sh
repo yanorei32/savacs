@@ -5,6 +5,9 @@ if [ ${EUID:-${UID}} -ne 0 ]; then
 	exit 1
 fi
 
+echo "update /boot/cmdline.txt"
+sed -i 's/console=serial0,115200 //' /boot/cmdline.txt
+
 echo "install /boot/config.txt ..."
 cp \
 	$(cd $(dirname $0) && pwd)/boot/config.txt \
