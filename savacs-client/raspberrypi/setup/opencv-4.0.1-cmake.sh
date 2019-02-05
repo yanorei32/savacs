@@ -55,6 +55,9 @@ cmake \
  -D WITH_IMGCODEC_PFM=OFF \
  -D WITH_CAROTENE=OFF \
  -D BUILD_opencv_apps=OFF \
- -D BUILD_opencv_python2=ON \
+ -D BUILD_opencv_python3=ON \
  ..
+
+#  -D BUILD_opencv_python2=ON \
+
 
