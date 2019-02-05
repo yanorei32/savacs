@@ -1397,12 +1397,12 @@ class InfoBar(object):
             )
 
             s.connect(file_name)
-            s.send('get: temperature')
-            json_data = s.recv(1024)
+            s.send('get: temperature'.encode('utf-8'))
+            json_data = s.recv(1024).decode('utf-8')
             s.close()
 
         except socket.error as e:
-            self._logger.errror('Socket Error: %s', e)
+            self._logger.error('Socket Error: %s', e)
             return '{SOCKET ERROR}'
 
         except socket.timeout as e:
