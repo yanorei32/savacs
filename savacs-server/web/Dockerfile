@@ -17,18 +17,18 @@ RUN set ex; \
     \
     apt-mark auto '.*' > /dev/null; \
     [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false;
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    \
+    apt-get update && apt-get install -y --no-install-recommends \
+      imagemagick \
+    && rm -rf /var/lib/apt/lists/*; \
+    \
+    mkdir /var/www/contents && \
+    mkdir /var/www/contents/selfy_images && \
+    mkdir /var/www/contents/record_voices && \
+    mkdir /var/www/contents/motion_images && \
+    chown -R www-data:www-data /var/www/contents
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-            imagemagick \
-        && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir /var/www/contents
-RUN mkdir /var/www/contents/selfy_images
-RUN mkdir /var/www/contents/record_voices
-RUN mkdir /var/www/contents/motion_images
-RUN chown -R www-data:www-data /var/www/contents
-
-COPY php.ini /usr/local/etc/php/
+COPY php.ini /usr/local/etc/php/php.ini
 COPY 000-default.conf /etc/apache2/sites-enabled/
 
