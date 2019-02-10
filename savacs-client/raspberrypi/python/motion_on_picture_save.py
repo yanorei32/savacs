@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from ConfigParser import ParsingError, MissingSectionHeaderError, NoSectionError, NoOptionError
+from configparser import ParsingError, MissingSectionHeaderError, NoSectionError, NoOptionError
 from photostand_config import PhotostandConfig, FailedToReadSerialNumber
 import sys
 import coloredlogs, logging
