@@ -4,7 +4,7 @@ import cv2
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GdkPixbuf, GObject, GLib, Pango
+from gi.repository import Gtk, GdkPixbuf, GObject, GLib, Pango, GObject
 
 import copy
 import datetime
@@ -140,7 +140,7 @@ class RecordSendingUI(SubUI):
         self._sc.upload_record_voice(
             self._to_photostand_ids_array
         )
-        self._change_to('PhotostandUI')
+        GLib.idle_add(self._change_to, 'PhotostandUI')
 
     def set_param(self, param):
         self._to_photostand_ids_array = param
@@ -755,7 +755,7 @@ class ImageSendingUI(SubUI):
 
     def _image_upload(self):
         self._sc.upload_selfy_image(self._to_photostand_ids_array)
-        self._change_to('PhotostandUI')
+        GLib.idle_add(self._change_to, 'PhotostandUI')
 
     def set_param(self, param):
         self._to_photostand_ids_array = param
@@ -770,7 +770,8 @@ class SetSendPhotostandIDsUI(SubUI):
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_size_request(584, 438)
 
-        list_store = Gtk.ListStore(bool, str)
+        # isSend? visibleName, id (nothing column)
+        list_store = Gtk.ListStore(bool, str, str)
 
         tree_view = Gtk.TreeView(model=list_store)
 
@@ -784,7 +785,7 @@ class SetSendPhotostandIDsUI(SubUI):
         column = Gtk.TreeViewColumn('Send?', renderer_toggle, active=0)
         tree_view.append_column(column)
 
-        column = Gtk.TreeViewColumn('ID', Gtk.CellRendererText(), text=1)
+        column = Gtk.TreeViewColumn('Name', Gtk.CellRendererText(), text=1)
         tree_view.append_column(column)
 
         tree_view.get_selection().set_mode(Gtk.ShadowType.NONE)
@@ -835,7 +836,7 @@ class SetSendPhotostandIDsUI(SubUI):
 
         for row in self._list_store:
             if row[0]:
-                to_photostand_ids_array.append(int(row[1]))
+                to_photostand_ids_array.append(int(row[2]))
 
         self._change_to_with_param(self._next_ui_name, to_photostand_ids_array)
 
@@ -859,7 +860,9 @@ class SetSendPhotostandIDsUI(SubUI):
 
         self._list_store.clear()
         for photostand in photostands:
-            self._list_store.append([True, str(photostand)])
+            self._list_store.append(
+                [True, str(photostand['display_name']), str(photostand['id'])]
+            )
 
         if photostands_length is 0:
             # NOTE: Associated photostands count is 0 Error
@@ -1304,7 +1307,7 @@ class UIManager(object):
                 self._change_to, self._psc, self._sc, self._logger
             )
 
-        self._change_to('PhotostandUI')
+        GLib.idle_add(self._change_to, 'PhotostandUI')
 
     def _change_to(self, name):
         if name not in self._ui_instances:
@@ -1650,7 +1653,7 @@ class ServerConnection(object):
 
         except requests.exceptions.HTTPError as errh:
             self._logger.error('HTTP Error: {}\n'.format(r.status_code))
-            self._logger.error('ServerResponse is: ' + content)
+            self._logger.error('ServerResponse is: ' + content.decode('utf-8'))
             return False
 
         except requests.exceptions.ConnectionError as errc:
@@ -1889,26 +1892,18 @@ class ServerConnection(object):
             'Try to get associated photostands csv like int array.'
         )
 
-        new_csv_array = self._get_csv_like_int_array_from_server(
-            '/api/get_associated_photostands.php',
+        new_json_object = self._get_json_object_from_server(
+            '/api/get_associated_photostands_info.php'
         )
 
-        if new_csv_array is False:
+        if new_json_object is False:
             return False
 
-        self._associated_photostands_updated = \
-            self._associated_photostands_updated or \
-            (new_csv_array != self._associated_photostands)
-
-        self._associated_photostands = new_csv_array
+        self._associated_photostands = new_json_object
 
         return True
 
     def get_associated_photostands_array(self):
-        updated = self._associated_photostands_updated
-
-        self._associated_photostands_updated = False
-
         return self._associated_photostands
 
 

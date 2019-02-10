@@ -6,6 +6,5 @@ xset s off
 # display power management signaling
 xset dpms 0 0 0
 
-python \
-  ~pi/savacs/savacs-client/raspberrypi/python/ui.py
-
+python3 \
+ ~pi/savacs/savacs-client/raspberrypi/python/ui.py
