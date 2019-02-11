@@ -35,6 +35,9 @@ class PhotostandConfig(object):
     def get_default_font(self):
         return self._default_font
 
+    def get_slideshow_interval(self):
+        return self._slideshow_interval
+
     def get_json_reload_interval(self):
         return self._json_reload_interval
 
@@ -102,6 +105,9 @@ class PhotostandConfig(object):
         self._server_timeout = config.getint('server', 'timeout')
         self._json_reload_interval = config.getint(
             'server', 'json_reload_interval'
+        )
+        self._slideshow_interval = config.getint(
+            'ui', 'slideshow_interval'
         )
 
         self._default_font = config.get('ui', 'font')

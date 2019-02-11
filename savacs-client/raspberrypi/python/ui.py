@@ -1144,7 +1144,7 @@ class PhotostandUI(SubUI):
         self._update_image()
 
         GObject.timeout_add(
-            1500,
+            psc.get_slideshow_interval(),
             self._update_image
         )
 
