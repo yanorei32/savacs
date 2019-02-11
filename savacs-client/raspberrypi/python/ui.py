@@ -91,9 +91,9 @@ class SubUI(object):
 
         a = 0
         dummyPixbuf.fill(
-            r << 8 * 3 &
-            g << 8 * 2 &
-            b << 8 * 1 &
+            r << 8 * 3 |
+            g << 8 * 2 |
+            b << 8 * 1 |
             a << 8 * 0
         )
 
