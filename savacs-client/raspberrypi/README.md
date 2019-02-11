@@ -47,14 +47,25 @@ sudo dpkg-reconfigure tzdata
 # Enter your timezone
 ```
 
-### Install your authorized_keys
-Install your `~/.ssh/authorized_keys`
+### Reboot
+```
+sudo reboot
+```
+
+### Update all packages
+```
+sudo apt update
+sudo apt upgrade -y
+sudo reboot
+```
 
 ### Install git
 ```sh
-sudo apt update
 sudo apt install git
 ```
+
+### Install your authorized_keys
+Install your `~/.ssh/authorized_keys`
 
 ### Clone this repo
 ```sh
@@ -71,6 +82,7 @@ sudo ./install.sh
 ```sh
 cd ~/savacs/savacs-client/raspberrypi/conf/
 sudo ./install-basics.sh
+sudo apt update
 ```
 
 **IMPORTANT:** This script will destroy the files.
@@ -81,29 +93,6 @@ sudo ./install-basics.sh
 	* If your LAN is not `192.168.0.1/24`, password authentication will be impossible.
 * `~pi/.xinitrc`
 * `~pi/motion.conf`
-
-### Create RAM Disk
-```
-sudo -E vim /etc/fstab
-```
-
-and append this line
-
-```/etc/tmpfs
-tmpfs /ramdisk tmpfs defaults,size=256m 0 0
-```
-
-### Reboot
-
-```sh
-sudo reboot # for boot configure
-```
-
-### Update/Upgrade apt
-```sh
-sudo apt update
-sudo apt upgrade
-```
 
 ### Install Vim with plugins
 ```sh
@@ -116,6 +105,23 @@ git clone https://github.com/yanorei32/dotfiles
 ./dotfiles/install.sh
 
 vim # and run :PlugInstall, :q in Vim
+```
+z
+### Create RAM Disk
+```
+sudo -E vim /etc/fstab
+```
+
+and append this line
+
+```/etc/fstab
+tmpfs /ramdisk tmpfs defaults,size=256m 0 0
+```
+
+### Reboot
+
+```sh
+sudo reboot # for boot configure
 ```
 
 ### Install / Configure X Server
@@ -149,6 +155,7 @@ cd v4l2loopback
 make -j4
 sudo make install
 
+sudo depmod
 # reboot
 ```
 
@@ -158,7 +165,7 @@ sudo make install
 sudo apt install \
 	ffmpeg \
 	python3-dev \
-	libgtk2.0-dev \
+	libgtk-3-dev \
 	libgirepository1.0-dev \
 	cmake \
 	libjpeg-dev
@@ -189,4 +196,4 @@ sudo pip3 install pyserial
 ```sh
 sudo apt install motion
 ```
-
+### Write your /etc/photostand.conf
