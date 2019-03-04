@@ -1,32 +1,22 @@
-FROM php:7-apache
-
-RUN docker-php-ext-install pdo_mysql
+FROM php:apache
 
 RUN set ex; \
+    docker-php-ext-install pdo_mysql; \
     \
-    savedAptMark="$(apt-mark showmanual)"; \
     apt-get update; \
-    apt-get install -y --no-install-recommends wget; \
+    apt-get install -y --no-install-recommends wget imagemagick; \
     rm -rf /var/lib/apt/lists/*; \
     \
-    wget -O ffmpeg.tar.xz 'http://johnvansickle.com/ffmpeg/releases/ffmpeg-release-64bit-static.tar.xz'; \
+    wget -O ffmpeg.tar.xz 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz'; \
     tar Jxf ffmpeg.tar.xz; \
     rm -rf ffmpeg.tar.xz; \
-    cp ./ffmpeg-*-64bit-static/ffprobe /usr/local/bin/; \
-    rm -r ./ffmpeg-*-64bit-static; \
+    cp ./ffmpeg-*-amd64-static/ffprobe /usr/local/bin/; \
+    rm -r ./ffmpeg-*-amd64-static; \
     \
-    apt-mark auto '.*' > /dev/null; \
-    [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    \
-    apt-get update && apt-get install -y --no-install-recommends \
-      imagemagick \
-    && rm -rf /var/lib/apt/lists/*; \
-    \
-    mkdir /var/www/contents && \
-    mkdir /var/www/contents/selfy_images && \
-    mkdir /var/www/contents/record_voices && \
-    mkdir /var/www/contents/motion_images && \
+    mkdir /var/www/contents; \
+    mkdir /var/www/contents/selfy_images; \
+    mkdir /var/www/contents/record_voices; \
+    mkdir /var/www/contents/motion_images; \
     chown -R www-data:www-data /var/www/contents
 
 COPY php.ini /usr/local/etc/php/php.ini
