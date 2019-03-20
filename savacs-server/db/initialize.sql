@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `savacs_db`.`photostands` (
   `id`                INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `cpu_serial_number` VARCHAR(16)   NOT NULL,
   `password_hash`     TINYTEXT      NOT NULL,
+  `display_name`      TINYTEXT      NOT NULL,
   `last_ip_address`   TINYTEXT,
   `last_access_time`  DATETIME,
 
