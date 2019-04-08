@@ -806,7 +806,7 @@ class SetSendPhotostandIDsUI(SubUI):
         ok_button = self._append_button(
             psc,
             vbuttonbox,
-            'OK',
+            '完了',
             self._on_ok_button_clicked
         )
 
