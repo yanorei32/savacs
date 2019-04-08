@@ -53,6 +53,9 @@ class PhotostandConfig(object):
     def get_capture_record_voice_file_name(self):
         return self._capture_record_voice_file_name
 
+    def get_led_gpio(self):
+        return self._led_gpio
+
     def _read_cpuinfo(self):
         with open('/proc/cpuinfo', 'r') as f:
             for line in f:
@@ -83,7 +86,7 @@ class PhotostandConfig(object):
         ValueError
         """
 
-        # MEMO: if file not exists, ConfigParser will return [].
+        # NOTE: if file not exists, ConfigParser will return [].
         if os.path.isfile(self._CONFIG_FILENAME) is False:
             raise FileNotFoundError(
                 errno.ENOENT,
@@ -95,23 +98,41 @@ class PhotostandConfig(object):
 
         config.read(self._CONFIG_FILENAME)
 
+        # [server] section
         self._server_base_uri = '{}://{}:{}{}'.format(
             config.get('server', 'protocol'),
             config.get('server', 'hostname'),
             config.get('server', 'port'),
             config.get('server', 'prefix'),
         )
-        self._password = config.get('server', 'password')
-        self._server_timeout = config.getint('server', 'timeout')
+
+        self._password = config.get(
+            'server',
+            'password'
+        )
+
+        self._server_timeout = config.getint(
+            'server',
+            'timeout'
+        )
+
         self._json_reload_interval = config.getint(
-            'server', 'json_reload_interval'
+            'server',
+            'json_reload_interval'
         )
+
         self._slideshow_interval = config.getint(
-            'ui', 'slideshow_interval'
+            'ui',
+            'slideshow_interval'
         )
 
-        self._default_font = config.get('ui', 'font')
+        # [ui] section
+        self._default_font = config.get(
+            'ui',
+            'font'
+        )
 
+        # [infobar] section
         self._sensor_is_active = config.getboolean(
             'infobar',
             'sensor_is_active'
@@ -132,6 +153,7 @@ class PhotostandConfig(object):
                 self._sensor_daemon_serial_port_device_name = \
                 None
 
+        # [download] section
         self._download_record_voice_file_name = config.get(
             'download',
             'record_voice_file_name'
@@ -142,6 +164,7 @@ class PhotostandConfig(object):
             'selfy_image_file_name'
         )
 
+        # [capture] section
         self._capture_record_voice_file_name = config.get(
             'capture',
             'record_voice_file_name'
@@ -152,14 +175,25 @@ class PhotostandConfig(object):
             'selfy_image_file_name'
         )
 
+        # [debug] section
         self._use_dummy_cpu_serial = config.getboolean(
             'debug',
             'use_dummy_cpu_serial'
         )
 
         if self._use_dummy_cpu_serial:
-            self._cpu_serial = config.get('debug', 'dummy_cpu_serial')
+            self._cpu_serial = config.get(
+                'debug',
+                'dummy_cpu_serial'
+            )
+
         else:
             self._read_cpuinfo()
+
+        # [hardware] section
+        self._led_gpio = config.getint(
+            'hardware',
+            'led_gpio'
+        )
 
 

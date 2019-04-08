@@ -24,6 +24,7 @@ import errno
 import pprint
 import copy
 from photostand_config import PhotostandConfig, FailedToReadSerialNumber
+from led_flash_manager import LEDFlashManager
 
 # TODO: JSONの取得に成功し、画像の取得に失敗すると、画像取得がリトライされない
 
@@ -975,6 +976,10 @@ class CaptureUI(SubUI):
         self._psc = psc
         self._logger = logger
 
+        self._lfm = LEDFlashManager(
+            psc.get_led_gpio()
+        )
+
         main_hbox = Gtk.HBox(spacing=2)
 
         image = Gtk.Image()
@@ -996,9 +1001,17 @@ class CaptureUI(SubUI):
         vbuttonbox = Gtk.VButtonBox()
 
         self._append_button(
-            psc, vbuttonbox,
+            psc,
+            vbuttonbox,
             '撮影',
             self._on_shutter_button_clicked
+        )
+
+        self._light_button = self._append_button(
+            psc,
+            vbuttonbox,
+            '点灯',
+            self._on_light_button_clicked
         )
 
         self._append_button(
@@ -1018,10 +1031,23 @@ class CaptureUI(SubUI):
         self._root  = main_hbox
         self._image = image
 
+        self._is_light_active = False
         self._cam = None
         self._last_frame = None
         self._refresh_timeout_id = None
         self._last_frame_lock = threading.Lock() # for save image
+
+    def _light_status_update(self):
+        if self._is_light_active:
+            self._lfm.turn_on()
+            self._light_button.get_child().set_text('消灯')
+        else:
+            self._lfm.turn_off()
+            self._light_button.get_child().set_text('点灯')
+
+    def _on_light_button_clicked(self, button):
+        self._is_light_active = not self._is_light_active
+        self._light_status_update()
 
     def _on_shutter_button_clicked(self, button):
         self._logger.debug('Image write to disk')
@@ -1078,6 +1104,9 @@ class CaptureUI(SubUI):
         return True
 
     def close_resources(self):
+        self._is_light_active = False
+        self._light_status_update()
+
         if self._refresh_timeout_id is not None:
             GObject.source_remove(self._refresh_timeout_id)
             self._refresh_timeout_id = None
@@ -1520,11 +1549,9 @@ class ServerConnection(object):
         self._csv_like_int_array_regex = re.compile(r'\A(\d+,)?\d+\Z')
 
         self._resentry_record_voices = None
-        self._resentry_record_voices_updated = False
         self._latest_selfy_image = None
         self._latest_selfy_image_for_compare = None
         self._associated_photostands = None
-        self._associated_photostands_updated = False
 
         self._update_objects(absolute=True)
 
