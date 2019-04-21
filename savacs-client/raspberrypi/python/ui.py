@@ -36,7 +36,7 @@ def gtk_gdk_pixbuf_new_from_array(array, colorspace, bits_per_sample):
     data = array.tostring(order = 'C')
     # data = array.reshape([-1])
 
-    has_alpha = (depth==4)
+    has_alpha = (depth == 4)
     #rowstride = GdkPixbuf.Pixbuf.calculate_rowstride(colorspace, has_alpha, bits_per_sample, width, height)
 
     return GdkPixbuf.Pixbuf.new_from_data(
@@ -637,6 +637,8 @@ class PlayVoiceUI(SubUI):
         out, err = self._ffmpeg_process.communicate('q'.encode('utf-8'))
 
     def on_load(self):
+        self._sc.clear_resentry_record_voices_object_updated_flag()
+
         voice_dictionary = self._sc.get_resentry_record_voices_object()
 
         self._list_store.clear()
@@ -1153,7 +1155,7 @@ class PhotostandUI(SubUI):
             '録音画面へ',
             lambda _: change_to('RecordUI')
         )
-        self._append_button(
+        self._change_to_play_voice_ui_button = self._append_button(
             psc,
             vbuttonbox,
             '再生画面へ',
@@ -1176,6 +1178,26 @@ class PhotostandUI(SubUI):
             psc.get_slideshow_interval(),
             self._update_image
         )
+
+        GObject.timeout_add(
+            1000,
+            self._update_record_button_text
+        )
+
+    def open_resources(self):
+        self._update_record_button_text()
+
+    def _update_record_button_text(self):
+        if self._sc.get_resentry_record_voices_object_updated_flag():
+            self._change_to_play_voice_ui_button.get_child().set_markup(
+                '<span color="green">録音画面へ *</span>'
+            )
+        else:
+            self._change_to_play_voice_ui_button.get_child().set_markup(
+                '録音画面へ'
+            )
+
+        return True
 
     def _update_image(self):
         json_obj = self._sc.get_last_selfy_image_object()
@@ -1549,6 +1571,7 @@ class ServerConnection(object):
         self._csv_like_int_array_regex = re.compile(r'\A(\d+,)?\d+\Z')
 
         self._resentry_record_voices = None
+        self._resentry_record_voices_updated_flag = False
         self._latest_selfy_image = None
         self._latest_selfy_image_for_compare = None
         self._associated_photostands = None
@@ -1827,12 +1850,21 @@ class ServerConnection(object):
         if new_json_object is False:
             return False
 
+        if self._resentry_record_voices is not None and self._resentry_record_voices != new_json_object:
+            self._resentry_record_voices_updated_flag = True
+
         self._resentry_record_voices = new_json_object
 
         return True
 
     def get_resentry_record_voices_object(self):
         return self._resentry_record_voices
+
+    def get_resentry_record_voices_object_updated_flag(self):
+        return self._resentry_record_voices_updated_flag
+
+    def clear_resentry_record_voices_object_updated_flag(self):
+        self._resentry_record_voices_updated_flag = False
 
     def _wget(self, uri, file_name, expected_mime_type):
         self._logger.debug(
