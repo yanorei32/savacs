@@ -1190,11 +1190,11 @@ class PhotostandUI(SubUI):
     def _update_record_button_text(self):
         if self._sc.get_resentry_record_voices_object_updated_flag():
             self._change_to_play_voice_ui_button.get_child().set_markup(
-                '<span color="green">録音画面へ *</span>'
+                '<span color="green">再生画面へ *</span>'
             )
         else:
             self._change_to_play_voice_ui_button.get_child().set_markup(
-                '録音画面へ'
+                '再生画面へ'
             )
 
         return True
