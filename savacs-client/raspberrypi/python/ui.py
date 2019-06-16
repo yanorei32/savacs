@@ -24,6 +24,7 @@ import errno
 import pprint
 import copy
 from photostand_config import PhotostandConfig, FailedToReadSerialNumber
+from led_flash_manager import LEDFlashManager
 
 # TODO: JSONの取得に成功し、画像の取得に失敗すると、画像取得がリトライされない
 
@@ -35,7 +36,7 @@ def gtk_gdk_pixbuf_new_from_array(array, colorspace, bits_per_sample):
     data = array.tostring(order = 'C')
     # data = array.reshape([-1])
 
-    has_alpha = (depth==4)
+    has_alpha = (depth == 4)
     #rowstride = GdkPixbuf.Pixbuf.calculate_rowstride(colorspace, has_alpha, bits_per_sample, width, height)
 
     return GdkPixbuf.Pixbuf.new_from_data(
@@ -636,6 +637,8 @@ class PlayVoiceUI(SubUI):
         out, err = self._ffmpeg_process.communicate('q'.encode('utf-8'))
 
     def on_load(self):
+        self._sc.clear_resentry_record_voices_object_updated_flag()
+
         voice_dictionary = self._sc.get_resentry_record_voices_object()
 
         self._list_store.clear()
@@ -805,7 +808,7 @@ class SetSendPhotostandIDsUI(SubUI):
         ok_button = self._append_button(
             psc,
             vbuttonbox,
-            'OK',
+            '完了',
             self._on_ok_button_clicked
         )
 
@@ -975,6 +978,10 @@ class CaptureUI(SubUI):
         self._psc = psc
         self._logger = logger
 
+        self._lfm = LEDFlashManager(
+            psc.get_led_gpio()
+        )
+
         main_hbox = Gtk.HBox(spacing=2)
 
         image = Gtk.Image()
@@ -996,9 +1003,17 @@ class CaptureUI(SubUI):
         vbuttonbox = Gtk.VButtonBox()
 
         self._append_button(
-            psc, vbuttonbox,
+            psc,
+            vbuttonbox,
             '撮影',
             self._on_shutter_button_clicked
+        )
+
+        self._light_button = self._append_button(
+            psc,
+            vbuttonbox,
+            '点灯',
+            self._on_light_button_clicked
         )
 
         self._append_button(
@@ -1018,10 +1033,23 @@ class CaptureUI(SubUI):
         self._root  = main_hbox
         self._image = image
 
+        self._is_light_active = False
         self._cam = None
         self._last_frame = None
         self._refresh_timeout_id = None
         self._last_frame_lock = threading.Lock() # for save image
+
+    def _light_status_update(self):
+        if self._is_light_active:
+            self._lfm.turn_on()
+            self._light_button.get_child().set_text('消灯')
+        else:
+            self._lfm.turn_off()
+            self._light_button.get_child().set_text('点灯')
+
+    def _on_light_button_clicked(self, button):
+        self._is_light_active = not self._is_light_active
+        self._light_status_update()
 
     def _on_shutter_button_clicked(self, button):
         self._logger.debug('Image write to disk')
@@ -1078,6 +1106,9 @@ class CaptureUI(SubUI):
         return True
 
     def close_resources(self):
+        self._is_light_active = False
+        self._light_status_update()
+
         if self._refresh_timeout_id is not None:
             GObject.source_remove(self._refresh_timeout_id)
             self._refresh_timeout_id = None
@@ -1124,7 +1155,7 @@ class PhotostandUI(SubUI):
             '録音画面へ',
             lambda _: change_to('RecordUI')
         )
-        self._append_button(
+        self._change_to_play_voice_ui_button = self._append_button(
             psc,
             vbuttonbox,
             '再生画面へ',
@@ -1147,6 +1178,26 @@ class PhotostandUI(SubUI):
             psc.get_slideshow_interval(),
             self._update_image
         )
+
+        GObject.timeout_add(
+            1000,
+            self._update_record_button_text
+        )
+
+    def open_resources(self):
+        self._update_record_button_text()
+
+    def _update_record_button_text(self):
+        if self._sc.get_resentry_record_voices_object_updated_flag():
+            self._change_to_play_voice_ui_button.get_child().set_markup(
+                '<span color="green">再生画面へ *</span>'
+            )
+        else:
+            self._change_to_play_voice_ui_button.get_child().set_markup(
+                '再生画面へ'
+            )
+
+        return True
 
     def _update_image(self):
         json_obj = self._sc.get_last_selfy_image_object()
@@ -1520,11 +1571,10 @@ class ServerConnection(object):
         self._csv_like_int_array_regex = re.compile(r'\A(\d+,)?\d+\Z')
 
         self._resentry_record_voices = None
-        self._resentry_record_voices_updated = False
+        self._resentry_record_voices_updated_flag = False
         self._latest_selfy_image = None
         self._latest_selfy_image_for_compare = None
         self._associated_photostands = None
-        self._associated_photostands_updated = False
 
         self._update_objects(absolute=True)
 
@@ -1800,12 +1850,21 @@ class ServerConnection(object):
         if new_json_object is False:
             return False
 
+        if self._resentry_record_voices is not None and self._resentry_record_voices != new_json_object:
+            self._resentry_record_voices_updated_flag = True
+
         self._resentry_record_voices = new_json_object
 
         return True
 
     def get_resentry_record_voices_object(self):
         return self._resentry_record_voices
+
+    def get_resentry_record_voices_object_updated_flag(self):
+        return self._resentry_record_voices_updated_flag
+
+    def clear_resentry_record_voices_object_updated_flag(self):
+        self._resentry_record_voices_updated_flag = False
 
     def _wget(self, uri, file_name, expected_mime_type):
         self._logger.debug(
