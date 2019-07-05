@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 require_once('../lib.php');
 
-function writeErrorLogAndDie(string $message)
-{
-    http_response_code(500);
-    header('Content-type: text/plain');
-    echo $message;
-    exit(1);
-}
-
 function main()
 {
     $passwordA = null;
@@ -40,12 +32,12 @@ function main()
             'cpuSerialNumberB'
         );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException: ' .
             $e->getMessage()
         );
@@ -56,7 +48,7 @@ function main()
     try {
         $pdo = DBCommon::createConnection();
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in createConnection: ' .
             $e->getMessage()
         );
@@ -71,12 +63,12 @@ function main()
             $passwordA
         );
     } catch (RuntimeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RuntimeException in photostandA Authorization: ' .
             $e->getMessage()
         );
     } catch (RangeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RangeException in photostandA Authorization: ' .
             $e->getMessage()
         );
@@ -91,12 +83,12 @@ function main()
             $passwordB
         );
     } catch (RuntimeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RuntimeException in photostandB Authorization: ' .
             $e->getMessage()
         );
     } catch (RangeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RangeException in photostandB Authorization: ' .
             $e->getMessage()
         );
@@ -110,12 +102,12 @@ function main()
         );
 
         if ($ret === true) {
-            writeErrorLogAndDie(
+            BasicTools::writeErrorLogAndDie(
                 'Already associated.'
             );
         }
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in check association: ' .
             $e->getMessage()
         );

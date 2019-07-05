@@ -6,14 +6,6 @@ declare(
 
 require_once('../lib.php');
 
-function writeErrorLogAndDie(string $message)
-{
-    http_response_code(500);
-    header('Content-type: text/plain');
-    echo $message;
-    exit(1);
-}
-
 const NEW_GROUP_THRESHOLD_SEC = 5;
 
 function main()
@@ -68,12 +60,12 @@ function main()
             'areaHeight'
         );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException: ' .
             $e->getMessage()
         );
@@ -84,7 +76,7 @@ function main()
     try {
         $pdo = DBCommon::createConnection();
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in createConnection: ' .
             $e->getMessage()
         );
@@ -99,12 +91,12 @@ function main()
             $password
         );
     } catch (RuntimeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RuntimeException in Authorization: ' .
             $e->getMessage()
         );
     } catch (RangeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RangeException in Authorization: ' .
             $e->getMessage()
         );
@@ -116,12 +108,12 @@ function main()
             'motionImage'
         );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException in Upload file: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException in Upload file: ' .
             $e->getMessage()
         );
@@ -144,7 +136,7 @@ function main()
     );
 
     if ($ret === false) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'Upload fail.'
         );
     }
@@ -157,7 +149,7 @@ function main()
     if (!file_exists($motionImageThumbnailFilePath)) {
         unlink($motionImageFilePath);
 
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'Failed to creation thumbnail file'
         );
     }

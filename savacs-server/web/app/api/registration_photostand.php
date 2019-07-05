@@ -6,14 +6,6 @@ declare(
 
 require_once('../lib.php');
 
-function writeErrorLogAndDie(string $message)
-{
-    http_response_code(500);
-    header('Content-type: text/plain');
-    echo $message;
-    exit(1);
-}
-
 function main()
 {
     $password = null;
@@ -29,13 +21,18 @@ function main()
             $_POST,
             'cpuSerialNumber'
         );
+
+        $displayName = ApacheEnvironmentWrapper::getUnicodeStringByParams(
+            $_POST,
+            'displayName'
+        );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException: ' .
             $e->getMessage()
         );
@@ -46,20 +43,21 @@ function main()
     try {
         $pdo = DBCommon::createConnection();
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in createConnection: ' .
             $e->getMessage()
         );
     }
 
     try {
-        DBCPhotostand::registrationByCpuSerialNumberAndPassword(
+        DBCPhotostand::registrationByCpuSerialNumberAndPasswordAndDisplayName(
             $pdo,
             $cpuSerialNumber,
-            $password
+            $password,
+            $displayName
         );
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in ragistration: ' .
             $e->getMessage()
         );

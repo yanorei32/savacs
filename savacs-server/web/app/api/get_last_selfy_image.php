@@ -4,15 +4,6 @@ declare(strict_types=1);
 
 require_once('../lib.php');
 
-function writeErrorLogAndDie(string $message)
-{
-    http_response_code(500);
-    header('Content-type: text/plain');
-    echo $message;
-    exit(1);
-}
-
-
 function main()
 {
     $password = null;
@@ -29,12 +20,12 @@ function main()
             'cpuSerialNumber'
         );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException: ' .
             $e->getMessage()
         );
@@ -45,7 +36,7 @@ function main()
     try {
         $pdo = DBCommon::createConnection();
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in createConnection: ' .
             $e->getMessage()
         );
@@ -60,12 +51,12 @@ function main()
             $password
         );
     } catch (RuntimeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RuntimeException in photostandA Authorization: ' .
             $e->getMessage()
         );
     } catch (RangeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RangeException in photostandA Authorization: ' .
             $e->getMessage()
         );

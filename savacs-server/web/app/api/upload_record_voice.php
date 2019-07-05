@@ -6,14 +6,6 @@ declare(
 
 require_once('../lib.php');
 
-function writeErrorLogAndDie(string $message)
-{
-    http_response_code(500);
-    header('Content-type: text/plain');
-    echo $message;
-    exit(1);
-}
-
 function isActiveAssociations(
     PDO $pdo,
     int $fromPhotostandId,
@@ -56,12 +48,12 @@ function main()
             'toPhotostandIdsArray'
         );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException: ' .
             $e->getMessage()
         );
@@ -72,7 +64,7 @@ function main()
     try {
         $pdo = DBCommon::createConnection();
     } catch (PDOException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'PDOException in createConnection: ' .
             $e->getMessage()
         );
@@ -87,19 +79,19 @@ function main()
             $password
         );
     } catch (RuntimeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RuntimeException in Authorization: ' .
             $e->getMessage()
         );
     } catch (RangeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RangeException in Authorization: ' .
             $e->getMessage()
         );
     }
 
     if (!isActiveAssociations($pdo, $fromPhotostandId, $toPhotostandIdsArray)) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'Association is not active'
         );
     }
@@ -112,12 +104,12 @@ function main()
             'recordVoice'
         );
     } catch (OutOfBoundsException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException in Upload file: ' .
             $e->getMessage()
         );
     } catch (UnexpectedValueException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'UnexpectedValueException in Upload file: ' .
             $e->getMessage()
         );
@@ -140,7 +132,7 @@ function main()
     );
 
     if ($ret === false) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'Upload fail.'
         );
     }
@@ -152,7 +144,7 @@ function main()
             $recordVoiceFilePath
         );
     } catch (RuntimeException $e) {
-        writeErrorLogAndDie(
+        BasicTools::writeErrorLogAndDie(
             'RuntimeException in get duration: ' .
             $e->getMessage()
         );
@@ -166,8 +158,23 @@ function main()
         $duration
     );
 
+    $fromPhotostandDisplayName = DBCPhotostand::getDisplayNameByPhotostandID(
+        $pdo,
+        $fromPhotostandId
+    );
+
+    $toPhotostandDisplayNamesArray = Array();
+
+    foreach ( $toPhotostandIdsArray as $id ) {
+        $toPhotostandDisplayNamesArray[] = DBCPhotostand::getDisplayNameByPhotostandID(
+            $pdo,
+            $id
+        );
+    }
+
     WebhookTools::globalUploadedNotification(
-        $cpuSerialNumber,
+        $fromPhotostandDisplayName,
+        $toPhotostandDisplayNamesArray,
         'Record',
         $recordVoicesDirectoryInfo->getWebServerPath() .
             $recordVoiceFileName

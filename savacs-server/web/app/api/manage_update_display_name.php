@@ -8,6 +8,7 @@ function main()
 {
     $password = null;
     $cpuSerialNumber = null;
+    $displayName = null;
 
     try {
         $password = ApacheEnvironmentWrapper::getPasswordStringByParams(
@@ -19,6 +20,12 @@ function main()
             $_POST,
             'cpuSerialNumber'
         );
+
+        $displayName = ApacheEnvironmentWrapper::getUnicodeStringByParams(
+            $_POST,
+            'displayName'
+        );
+
     } catch (OutOfBoundsException $e) {
         BasicTools::writeErrorLogAndDie(
             'OutOfBoundsException: ' .
@@ -62,14 +69,15 @@ function main()
         );
     }
 
-    $photostandIds = DBCPhotostand::getActiveAssociations(
+    $ret = DBCPhotostand::updateDisplayNameById(
         $pdo,
-        $photostandId
+        $photostandId,
+        $displayName
     );
 
     header('Content-type: text/plain');
 
-    echo implode(',', $photostandIds);
+    echo 'Success.';
 }
 
 main();

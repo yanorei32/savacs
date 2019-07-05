@@ -62,16 +62,20 @@ function main()
         );
     }
 
-    $photostandIds = DBCPhotostand::getActiveAssociations(
+    $photostandInfos = DBCPhotostand::getAssociatedPhotostands(
         $pdo,
         $photostandId
     );
 
-    header('Content-type: text/plain');
+    $jsonString = json_encode($photostandInfos);
+    assert(!($jsonString === false), 'json_encode fail.');
 
-    echo implode(',', $photostandIds);
+    header('Content-type: application/json');
+
+    echo $jsonString;
 }
 
 main();
+
 
 

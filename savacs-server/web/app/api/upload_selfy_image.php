@@ -167,8 +167,23 @@ function main()
         $selfyImageThumbnailFileName
     );
 
+    $fromPhotostandDisplayName = DBCPhotostand::getDisplayNameByPhotostandID(
+        $pdo,
+        $fromPhotostandId
+    );
+
+    $toPhotostandDisplayNamesArray = Array();
+
+    foreach ( $toPhotostandIdsArray as $id ) {
+        $toPhotostandDisplayNamesArray[] = DBCPhotostand::getDisplayNameByPhotostandID(
+            $pdo,
+            $id
+        );
+    }
+
     WebhookTools::globalUploadedNotification(
-        $cpuSerialNumber,
+        $fromPhotostandDisplayName,
+        $toPhotostandDisplayNamesArray,
         'Selfy',
         $selfyImagesDirectoryInfo->getWebServerPath() .
             $selfyImageFileName

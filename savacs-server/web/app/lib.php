@@ -42,13 +42,16 @@ class WebhookTools
      * Global uploaded notification
      *   - for debug / management
      *
-     * @param string    $cpuSerialNumber    CPU Serial number
-     * @param string    $notificationType   Notification type
+     * @param string    $fromPhotostandDisplayName  DisplayName
+     * @param array     $toPhotostandDisplayNames   DisplayNames
+     * @param string    $notificationType           Notification type
+     * @param string    $path                       Web path
      *
      * @return bool $isSuccess
      */
     public static function globalUploadedNotification(
-        string $cpuSerialNumber,
+        string $fromPhotostandDisplayName,
+        array  $toPhotostandDisplayNames,
         string $notificationType,
         string $path
     ) : bool {
@@ -61,8 +64,11 @@ class WebhookTools
 
         $message = '';
 
+        $toPhotostandDisplayNames = implode(', ', $toPhotostandDisplayNames);
+
+        $message .= "From: $fromPhotostandDisplayName\n";
+        $message .= "To: $toPhotostandDisplayNames\n";
         $message .= "Type: $notificationType\n";
-        $message .= "From: $cpuSerialNumber\n";
 
         $globalServer = getenv('SAVACS_GLOBAL');
 
@@ -313,7 +319,7 @@ class ApacheEnvironmentWrapper
     }
 
     /**
-     * Get AAC Audio by params
+     * Get any file by params
      *
      * @param   array   $parameters
      * @param   string  $parameterName
@@ -323,7 +329,7 @@ class ApacheEnvironmentWrapper
      * @throws  OutOfBoundsException
      * @throws  UnexpectedValueException
      */
-    public static function getAACAudioByFilesParams(
+    private static function _getAnyFileByParams(
         array   $parameters,
         string  $parameterName
     ) : string {
@@ -332,11 +338,62 @@ class ApacheEnvironmentWrapper
             $parameterName
         );
 
+        switch ($file['error']) {
+            case UPLOAD_ERR_OK:
+                break;
+
+            case UPLOAD_ERR_INI_SIZE:
+                throw new UnexpectedValueException('Upload failed. The uploaded file exceeds the upload_max_filesize directive in php.ini');
+                break;
+
+            case UPLOAD_ERR_FORM_SIZE:
+                throw new UnexpectedValueException('Upload failed. The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.');
+                break;
+
+            case UPLOAD_ERR_PARTIAL:
+                throw new UnexpectedValueException('Upload failed. The uploaded file was only partially uploaded.');
+                break;
+
+            case UPLOAD_ERR_NO_FILE:
+                throw new UnexpectedValueException('Upload failed. No file was uploaded.');
+                break;
+
+            case UPLOAD_ERR_NO_TMP_DIR:
+                throw new UnexpectedValueException('Upload failed. Missing a temporary folder.');
+                break;
+
+            case UPLOAD_ERR_EXTENSION:
+                throw new UnexpectedValueException('Upload failed. PHP extension stopped the file uploaded.');
+                break;
+        }
+
         $tempFilePath = $file['tmp_name'];
 
         if (!is_uploaded_file($tempFilePath)) {
-            throw new UnexpectedValueException('Apache upload failed.');
+            throw new UnexpectedValueException('Upload failed. Unknown issue.');
         }
+
+        return $tempFilePath;
+    }
+
+
+    /**
+     * Get AAC Audio by params
+     *
+     * @param   array   $parameters
+     * @param   string  $parameterName
+     *
+     * @return  string  $tempFilePath
+     *
+     */
+    public static function getAACAudioByFilesParams(
+        array   $parameters,
+        string  $parameterName
+    ) : string {
+        $tempFilePath = self::_getAnyFileByParams(
+            $parameters,
+            $parameterName
+        );
 
         if (mime_content_type($tempFilePath) !== 'audio/x-hx-aac-adts') {
             throw new UnexpectedValueException(
@@ -362,16 +419,10 @@ class ApacheEnvironmentWrapper
         array   $parameters,
         string  $parameterName
     ) : string {
-        $file = self::_getAnyValueByParams(
+        $tempFilePath = self::_getAnyFileByParams(
             $parameters,
             $parameterName
         );
-
-        $tempFilePath = $file['tmp_name'];
-
-        if (!is_uploaded_file($tempFilePath)) {
-            throw new UnexpectedValueException('Apache upload failed.');
-        }
 
         if (mime_content_type($tempFilePath) !== 'image/jpeg') {
             throw new UnexpectedValueException(
@@ -573,10 +624,58 @@ class ApacheEnvironmentWrapper
 
         return floatval($floatString);
     }
+
+    /**
+     * Get unicode string by params
+     *
+     * @param   array   $params
+     * @param   string  $paramName
+     *
+     * @return  string  $stringValue
+     *
+     * @throws  UnexpectedValueException
+     * @throws  OutOfBoundsException
+     */
+    public static function getUnicodeStringByParams(
+        array   $params,
+        string  $paramName
+    ) : string {
+        $rawString = self::_getAnyValueByParams($params, $paramName);
+
+        if (mb_check_encoding($rawString, 'UTF-8') !== true) {
+            throw new UnexpectedValueException(
+                "Parameter '$paramName' is not valid unicode string"
+            );
+        }
+
+        return $rawString;
+    }
 }
 
 class BasicTools
 {
+    /**
+     * Write error log and Die
+     *
+     * @param string    $messgae
+     * @param int       $statusCode
+     */
+    public static function writeErrorLogAndDie(
+        string  $message,
+        int     $statusCode = 500
+    ) : void {
+        // for client
+        http_response_code($statusCode);
+        header('Content-type: text/plain');
+        echo $message;
+
+        // for server
+        error_log($message);
+
+        exit(1);
+    }
+
+
     /**
      * Create thumbnail
      *
@@ -710,11 +809,60 @@ class DBCommon
 class DBCPhotostand
 {
     /**
+     * Get display name by photostand ID
+     *
+     * @param PDO   $pdo    PDO object
+     * @param int   $ids    Photostand ID (range validated)
+     *
+     * @return array DisplayNames
+     */
+    public static function getDisplayNameByPhotostandID(
+        PDO $pdo,
+        int $id
+    ) : string {
+        $sql = <<<EOT
+SELECT
+    `display_name`
+FROM
+    `photostands`
+WHERE
+    `id` = :id
+LIMIT
+    1
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':id',
+            $id,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $row = $statement->fetch(PDO::FETCH_NUM);
+        $statement->closeCursor();
+
+        return $row[0];
+    }
+
+
+    /**
      * Is active association by photostand IDs
      *
      * @param PDO   $pdo    PDO object
-     * @param int   $idA    Photostand A ID (range checked)
-     * @param int   $idB    Photostand B ID (range checked)
+     * @param int   $idA    Photostand A ID (range validated)
+     * @param int   $idB    Photostand B ID (range validated)
      */
     public static function isActiveAssociationByPhotostandIds(
         PDO $pdo,
@@ -776,6 +924,73 @@ EOT;
         $statement->closeCursor();
 
         return !($row === false);
+    }
+
+    /**
+     * Get associated photostands
+     *
+     * @param PDO   $pdo    PDO object
+     * @param int   $id     Photostand ID
+     *
+     * @return array $photostandInfos
+     */
+    public static function getAssociatedPhotostands(
+        PDO $pdo,
+        int $photostandId
+    ) : array {
+        $sql = <<<EOT
+WITH `associated_photostands` AS (
+    SELECT
+        `photostand_b`
+    FROM
+        `photostands__photostands`
+    WHERE
+        `photostand_a` = :photostand_id_0
+    UNION
+    SELECT
+        `photostand_a`
+    FROM
+        `photostands__photostands`
+    WHERE
+        `photostand_b` = :photostand_id_1
+)
+
+SELECT
+    `associated_photostands`.`photostand_b` as `id`,
+    `photostands`.`display_name`
+FROM `associated_photostands`
+    INNER JOIN `photostands`
+        ON `associated_photostands`.`photostand_b` = `photostands`.`id`
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':photostand_id_0',
+            $photostandId,
+            PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':photostand_id_1',
+            $photostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        $statement->closeCursor();
+
+        return $rows;
     }
 
     /**
@@ -982,13 +1197,60 @@ EOT;
     }
 
     /**
+     * Update display name by Id
+     *
+     * @param PDO       $pdo                PDO object
+     * @param int       $photostandId       Photostand Id
+     * @param string    $newDisplayName     New display name
+     */
+    public static function updateDisplayNameById(
+        PDO     $pdo,
+        int     $photostandId,
+        string  $newDisplayName
+    ) : void {
+        $sql = <<<EOT
+UPDATE
+    `photostands`
+SET
+    `display_name` = :new_display_name
+WHERE
+    `id` = :id
+;
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':new_display_name',
+            $newDisplayName,
+            PDO::PARAM_STR
+        ) && $statement->bindParam(
+            ':id',
+            $photostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+    }
+
+    /**
      * Registration photostand
      *
      * @param PDO       $pdo                PDO object
      * @param string    $cpuSerialNumber    Validated Raspberry Pi CPU Serial Number
      * @param string    $password           Validated Password
+     * @param string    $displayName        Validated DisplayName
      */
-    public static function registrationByCpuSerialNumberAndPassword(
+    public static function registrationByCpuSerialNumberAndPasswordAndDisplayName(
         PDO     $pdo,
         string  $cpuSerialNumber,
         string  $password
@@ -1000,12 +1262,14 @@ EOT;
 INSERT
 INTO `photostands` (
     `cpu_serial_number`,
-    `password_hash`
+    `password_hash`,
+    `display_name`
 )
 VALUES
 (
     :cpu_serial_number,
-    :password_hash
+    :password_hash,
+    :display_name
 );
 EOT;
 
@@ -1019,6 +1283,10 @@ EOT;
         ) && $statement->bindParam(
             ':password_hash',
             $passwordHash,
+            PDO::PARAM_STR
+        ) && $statement->bindParam(
+            ':display_name',
+            $displayName,
             PDO::PARAM_STR
         );
         assert(
@@ -1047,7 +1315,8 @@ EOT;
 SELECT
     `id`,
     `password_hash`,
-    `cpu_serial_number`
+    `cpu_serial_number`,
+    `display_name`
 FROM
     `photostands`
 EOT;
@@ -1267,9 +1536,10 @@ EOT;
     /**
      * Get resentry record voices
      *
-     * @param PDO   $pdo                PDO object
-     * @param int   $toPhotostandId     To photostand ID
-     * @param int   $limit              Limit
+     * @param PDO       $pdo                PDO object
+     * @param string    $uriPrefix          URI prefix
+     * @param int       $toPhotostandId     To photostand ID
+     * @param int       $limit              Limit
      *
      * @throws RuntimeException
      *
@@ -1277,26 +1547,32 @@ EOT;
      */
     public static function getResentryRecordVoices(
         PDO     $pdo,
+        string  $uriPrefix,
         int     $toPhotostandId,
         int     $limit
     ) : array {
-        // TODO: This sql has performance issue.
         $sql = <<<EOT
+WITH `target_records` AS (
+    SELECT
+        *
+    FROM
+        `record_voices__photostands`
+    WHERE
+        `to_photostand_id` = :to_photostand_id
+)
+
 SELECT
-    `record_voices`.`file_name`,
+    CONCAT(:uri_prefix, `record_voices`.`file_name`) as `uri`,
     `record_voices`.`duration`,
     `record_voices`.`created_at`,
-    `record_voices`.`from_photostand_id`
+    `record_voices`.`from_photostand_id`,
+    `photostands`.`display_name` as `send_from`
 
-FROM
-    `record_voices`
-
-    INNER JOIN `record_voices__photostands`
-        ON `record_voices`.`id` =
-            `record_voices__photostands`.`record_voices_id`
-
-WHERE
-    `record_voices__photostands`.`to_photostand_id` = :to_photostand_id
+FROM `target_records`
+    LEFT JOIN `record_voices`
+        ON `target_records`.`record_voices_id` =  `record_voices`.`id`
+    INNER JOIN `photostands`
+        ON `record_voices`.`from_photostand_id` = `photostands`.`id`
 
 ORDER BY
     `record_voices`.`created_at`
@@ -1317,6 +1593,10 @@ EOT;
             ':limit',
             $limit,
             PDO::PARAM_INT
+        ) && $statement->bindParam(
+            ':uri_prefix',
+            $uriPrefix,
+            PDO::PARAM_STR
         );
         assert(
             !($ret === false),
@@ -1329,7 +1609,7 @@ EOT;
             'Failed to execute statement. Propably SQL syntax error.'
         );
 
-        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         $statement->closeCursor();
 
@@ -1337,18 +1617,7 @@ EOT;
             throw new RuntimeException('Record voice not found.');
         }
 
-        $recordVoices = array();
-
-        foreach ($rows as $row) {
-            $recordVoices[] = new RecordVoice(
-                $row[0],
-                $row[1],
-                $row[2],
-                $row[3]
-            );
-        }
-
-        return $recordVoices;
+        return $rows;
     }
 
     public static function debugGetRecordVoices(
@@ -2069,7 +2338,7 @@ SELECT
     `changed_pixel`,
     `noise_level`,
     `group_id`,
-    `created_at`
+    `created_at`,
     `human_classify`,
     `used_ai_id`,
     `ai_classify`
@@ -2187,6 +2456,13 @@ EOT;
         $statement = $pdo->prepare($sql);
         assert(!($statement === false), 'Failed to prepare sql.');
 
+        $mdiAreaWidth       = $mdi->getAreaWidth();
+        $mdiAreaHeight      = $mdi->getAreaHeight();
+        $mdiAreaCenterX     = $mdi->getAreaCenterX();
+        $mdiAreaCenterY     = $mdi->getAreaCenterY();
+        $mdiChangedPixel    = $mdi->getChangedPixel();
+        $mdiNoiseLevel      = $mdi->getNoiseLevel();
+
         $ret = $statement->bindParam(
             ':file_name',
             $fileName,
@@ -2201,27 +2477,27 @@ EOT;
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':area_width',
-            $mdi->getAreaWidth(),
+            $mdiAreaWidth,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':area_height',
-            $mdi->getAreaHeight(),
+            $mdiAreaHeight,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':area_center_x',
-            $mdi->getAreaCenterX(),
+            $mdiAreaCenterX,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':area_center_y',
-            $mdi->getAreaCenterY(),
+            $mdiAreaCenterY,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':changed_pixel',
-            $mdi->getChangedPixel(),
+            $mdiChangedPixel,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':noise_level',
-            $mdi->getNoiseLevel(),
+            $mdiNoiseLevel,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':group_id',
@@ -2434,6 +2710,9 @@ EOT;
         $statement = $pdo->prepare($sql);
         assert(!($statement === false), 'Failed to prepare sql.');
 
+        // HOTFIX: PHP Notice: Only variables should be passed by reference
+        $sensorValueEventType = $sensorValue->getEventType();
+
         $ret = $statement->bindParam(
             ':cds_lux',
             strval($sensorValue->getCdsLux()),
@@ -2456,7 +2735,7 @@ EOT;
             PDO::PARAM_STR
         ) && $statement->bindParam(
             ':event_type',
-            $sensorValue->getEventType(),
+            $sensorValueEventType,
             PDO::PARAM_INT
         ) && $statement->bindParam(
             ':from_photostand_id',
