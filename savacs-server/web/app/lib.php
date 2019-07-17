@@ -1253,7 +1253,8 @@ EOT;
     public static function registrationByCpuSerialNumberAndPasswordAndDisplayName(
         PDO     $pdo,
         string  $cpuSerialNumber,
-        string  $password
+        string  $password,
+        string  $displayName
     ) : void {
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         assert(!($passwordHash === false), 'Failed to calc hash.');
