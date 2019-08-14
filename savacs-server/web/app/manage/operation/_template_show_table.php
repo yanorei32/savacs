@@ -42,7 +42,7 @@
           </thead>
           <tbody>
             <?php foreach($rows as $row) { ?><tr>
-              <?php foreach($row as $col) { ?><td align=<?php echo is_numeric($col) ? "right" : "left";?>><?php echo (string)$col; ?></td><?php } ?>
+              <?php foreach($row as $col) { ?><td align=<?php echo gettype($col) == "integer" || gettype($col) == "double" ? "right" : "left";?>><?php echo (string)$col; ?></td><?php } ?>
             </tr><?php } ?>
           </tbody>
         </table>
