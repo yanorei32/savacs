@@ -166,7 +166,7 @@ class Notification
      *
      * @param string    $fromPhotostandDisplayName  DisplayName
      * @param int       $notificationType           Notification type
-     * @param string    $path                       Web path
+     * @param string    $filename                   Filename
      * @param array     $emailAddresses             Email addresses
      *
      * @return bool $isSuccess
@@ -174,7 +174,7 @@ class Notification
     public static function localUploadedNotification(
         string  $fromPhotostandDisplayName,
         int     $notificationType,
-        string  $path,
+        string  $filename,
         array   $emailAddresses
     ) : bool {
         $title = sprintf(
@@ -190,10 +190,17 @@ class Notification
         );
 
         $globalServer = getenv('SAVACS_GLOBAL');
+        $baseDirectory = getenv('SAVACS_ALIAS');
+
+        if ($baseDirectory === false) {
+            $baseDirectory = '/';
+        } else {
+            $baseDirectory .= '/';
+        }
 
         if ($globalServer !== false) {
-            $uri = $globalServer. $path;
-            $message .= "\n\nFile URL: $uri\n";
+            $uri = $globalServer . $baseDirectory . 'filev.php?f=' . $filename;
+            $message .= "\nURL: $uri\n";
         }
 
         return self::emailSendToUser($message, $title, $emailAddresses);
@@ -342,6 +349,59 @@ class ApacheEnvironmentWrapper
         } elseif ($ret === false) {
             assert(false, 'Regex pattern is not valid.');
         }
+    }
+
+    /**
+     * Is safe filename
+     *
+     * @param   string  $filename
+     *
+     * @return  bool    $isValid
+     */
+    private static function _isSafeFilename(
+        string  $filename
+    ) : bool {
+        $ret = preg_match(
+            '/^\d+_[0-9a-f_]+\.(jpg|aac)$/',
+            $filename
+        );
+
+        if ($ret === 1) {
+            return true;
+        } elseif ($ret === 0) {
+            return false;
+        } elseif ($ret === false) {
+            assert(false, 'Regex pattern is not valid.');
+        }
+    }
+
+    /**
+     * Get safe filename by params
+     *
+     * @param   array   $parameters
+     * @param   string  $parameterName
+     *
+     * @return  string  $safe filename
+     *
+     * @throws  OutOfBoundsException
+     * @throws  UnexpectedValueException
+     */
+    public static function getSafeFilenameByParams(
+        array   $parameters,
+        string  $parameterName
+    ) : string {
+        $filename= self::_getAnyValueByParams(
+            $parameters,
+            $parameterName
+        );
+
+        if (!self::_isSafeFilename($filename)) {
+            throw new UnexpectedValueException(
+                'This filename is unsafe.'
+            );
+        }
+
+        return $filename;
     }
 
     /**

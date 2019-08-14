@@ -169,8 +169,7 @@ function main()
         Notification::localUploadedNotification(
             $fromPhotostandDisplayName,
             NotificationType::RECORD,
-            $recordVoicesDirectoryInfo->getWebServerPath() .
-                $recordVoiceFileName,
+            $recordVoiceFileName,
             DBCNotificationEmail::getEmailAddressesFromPhotostandId(
                 $pdo,
                 $id,

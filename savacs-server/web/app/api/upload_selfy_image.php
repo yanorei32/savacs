@@ -178,8 +178,7 @@ function main()
         Notification::localUploadedNotification(
             $fromPhotostandDisplayName,
             NotificationType::SELFY,
-            $selfyImagesDirectoryInfo->getWebServerPath() .
-                $selfyImageFileName,
+            $selfyImageFileName,
             DBCNotificationEmail::getEmailAddressesFromPhotostandId(
                 $pdo,
                 $id,
