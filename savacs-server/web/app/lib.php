@@ -178,7 +178,7 @@ class Notification
         array   $emailAddresses
     ) : bool {
         $title = sprintf(
-            "%sからの新着%s - SAVACS",
+            "[SAVACS] %sからの新着%s",
             $fromPhotostandDisplayName,
             NotificationType::STR_JP[$notificationType]
         );
