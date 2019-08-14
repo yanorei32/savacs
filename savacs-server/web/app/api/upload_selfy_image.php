@@ -174,11 +174,10 @@ function main()
 
     $toPhotostandDisplayNamesArray = Array();
 
+    $emailAddresses = [];
     foreach ( $toPhotostandIdsArray as $id ) {
-        Notification::localUploadedNotification(
-            $fromPhotostandDisplayName,
-            NotificationType::SELFY,
-            $selfyImageFileName,
+        $emailAddresses = array_merge(
+            $emailAddresses,
             DBCNotificationEmail::getEmailAddressesFromPhotostandId(
                 $pdo,
                 $id,
@@ -191,6 +190,14 @@ function main()
             $id
         );
     }
+
+    if (count($emailAddresses) != 0)
+        Notification::localUploadedNotification(
+            $fromPhotostandDisplayName,
+            NotificationType::RECORD,
+            $recordVoiceFileName,
+            $emailAddresses
+        );
 
     Notification::globalUploadedNotification(
         $fromPhotostandDisplayName,

@@ -165,11 +165,10 @@ function main()
 
     $toPhotostandDisplayNamesArray = Array();
 
+    $emailAddresses = [];
     foreach ( $toPhotostandIdsArray as $id ) {
-        Notification::localUploadedNotification(
-            $fromPhotostandDisplayName,
-            NotificationType::RECORD,
-            $recordVoiceFileName,
+        $emailAddresses = array_merge(
+            $emailAddresses,
             DBCNotificationEmail::getEmailAddressesFromPhotostandId(
                 $pdo,
                 $id,
@@ -183,6 +182,14 @@ function main()
         );
     }
 
+    if (count($emailAddresses) != 0)
+        Notification::localUploadedNotification(
+            $fromPhotostandDisplayName,
+            NotificationType::RECORD,
+            $recordVoiceFileName,
+            $emailAddresses
+        );
+
     Notification::globalUploadedNotification(
         $fromPhotostandDisplayName,
         $toPhotostandDisplayNamesArray,
@@ -190,7 +197,6 @@ function main()
         $recordVoicesDirectoryInfo->getWebServerPath() .
             $recordVoiceFileName
     );
-
 
     echo 'Success.';
 }
