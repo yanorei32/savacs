@@ -166,6 +166,18 @@ function main()
     $toPhotostandDisplayNamesArray = Array();
 
     foreach ( $toPhotostandIdsArray as $id ) {
+        Notification::localUploadedNotification(
+            $fromPhotostandDisplayName,
+            NotificationType::RECORD,
+            $recordVoicesDirectoryInfo->getWebServerPath() .
+                $recordVoiceFileName,
+            DBCNotificationEmail::getEmailAddressesFromPhotostandId(
+                $pdo,
+                $id,
+                NotificationType::RECORD
+            )
+        );
+
         $toPhotostandDisplayNamesArray[] = DBCPhotostand::getDisplayNameByPhotostandID(
             $pdo,
             $id
@@ -180,18 +192,6 @@ function main()
             $recordVoiceFileName
     );
 
-
-    Notification::localUploadedNotification(
-        $fromPhotostandDisplayName,
-        NotificationType::RECORD,
-        $recordVoicesDirectoryInfo->getWebServerPath() .
-            $recordVoiceFileName,
-        DBCNotificationEmail::getEmailAddressesFromPhotostandId(
-            $pdo,
-            $fromPhotostandId,
-            NotificationType::RECORD
-        )
-    );
 
     echo 'Success.';
 }

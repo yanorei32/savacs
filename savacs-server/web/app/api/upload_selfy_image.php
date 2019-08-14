@@ -175,6 +175,18 @@ function main()
     $toPhotostandDisplayNamesArray = Array();
 
     foreach ( $toPhotostandIdsArray as $id ) {
+        Notification::localUploadedNotification(
+            $fromPhotostandDisplayName,
+            NotificationType::SELFY,
+            $selfyImagesDirectoryInfo->getWebServerPath() .
+                $selfyImageFileName,
+            DBCNotificationEmail::getEmailAddressesFromPhotostandId(
+                $pdo,
+                $id,
+                NotificationType::SELFY
+            )
+        );
+
         $toPhotostandDisplayNamesArray[] = DBCPhotostand::getDisplayNameByPhotostandID(
             $pdo,
             $id
@@ -187,18 +199,6 @@ function main()
         'Selfy',
         $selfyImagesDirectoryInfo->getWebServerPath() .
             $selfyImageFileName
-    );
-
-    Notification::localUploadedNotification(
-        $fromPhotostandDisplayName,
-        NotificationType::SELFY,
-        $selfyImagesDirectoryInfo->getWebServerPath() .
-            $selfyImageFileName,
-        DBCNotificationEmail::getEmailAddressesFromPhotostandId(
-            $pdo,
-            $fromPhotostandId,
-            NotificationType::SELFY
-        )
     );
 
     echo 'Success.';
