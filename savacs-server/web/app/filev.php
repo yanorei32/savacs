@@ -44,7 +44,7 @@
 <!DOCTYPE HTML>
 <html lang=en>
   <head>
-    <title>SAVACS RecordPlayer</title>
+    <title>SAVACS ContentViewer</title>
     <meta name=viewport content=width=device-width,initial-scale=1>
     <style>
       html, body {
