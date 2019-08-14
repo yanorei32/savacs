@@ -15,7 +15,7 @@
 
     $fname = null;
     try {
-        $fname = ApacheEnvironmentWrapper::getSafeFilenameByParams($_GET, 'n');
+        $fname = ApacheEnvironmentWrapper::getSafeFilenameByParams($_GET, 'f');
     } catch (OutOfBoundsException $e) {
         writeErrorLogAndDie(
             'OutOfBoundsException: ' .
