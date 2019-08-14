@@ -1948,7 +1948,7 @@ class ServerConnection(object):
 
     def _update_associated_photostands_array(self):
         self._logger.debug(
-            'Try to get associated photostands csv like int array.'
+            'Try to get associated photostands info (json).'
         )
 
         new_json_object = self._get_json_object_from_server(
