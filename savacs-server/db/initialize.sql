@@ -52,6 +52,22 @@ CREATE TABLE IF NOT EXISTS `savacs_db`.`record_voices` (
     ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `savacs_db`.`notification_emails` (
+  `id`                  INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `email`               VARCHAR(254)   NOT NULL,
+  `record_notification` BOOLEAN       NOT NULL,
+  `selfy_notification`  BOOLEAN       NOT NULL,
+  `photostand_id`       INT UNSIGNED  NOT NULL,
+
+  PRIMARY KEY ( `id` ),
+
+  CONSTRAINT `fk__notification_emails__photostands__id`
+    FOREIGN KEY ( `photostand_id` )
+    REFERENCES `savacs_db`.`photostands` ( `id` )
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS `savacs_db`.`record_voices__photostands` (
   `to_photostand_id`  INT UNSIGNED  NOT NULL,
   `record_voices_id`  INT UNSIGNED  NOT NULL,

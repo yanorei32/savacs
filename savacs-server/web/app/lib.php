@@ -4,7 +4,7 @@ declare(
     strict_types = 1
 );
 
-class WebhookTools
+class Notification
 {
     /**
      * Post webhook message
@@ -14,7 +14,7 @@ class WebhookTools
      *
      * @return bool $isSuccess
      */
-    public static function post(
+    private static function _postWebhook(
         string $userWebhookURI,
         string $message
     ) : bool {
@@ -39,6 +39,83 @@ class WebhookTools
     }
 
     /**
+     * Global uploaded notification - Webhook impl
+     *
+     * @param string $message
+     *
+     * @return bool $isSuccess
+     */
+    private static function _globalUploadedNotificationWebhookImpl(
+        string  $message
+    ) : bool {
+        $globalWebhookURI = getenv('GLOBAL_WEBHOOK');
+
+        if ($globalWebhookURI === false) {
+            return true;
+        }
+
+        $isSuccess = self::_postWebhook(
+            $globalWebhookURI,
+            $message
+        );
+
+        return $isSuccess;
+    }
+
+    /**
+     * Email Send To User
+     *
+     * @param string    $message
+     * @param string    $title
+     * @param array     $bccEmails
+     *
+     * @return bool     $isSuccess
+     */
+    public static function emailSendToUser(
+        string  $message,
+        string  $title,
+        array   $bccEmails
+    ) : bool {
+        $savacsEmail = getenv('SAVACS_EMAIL');
+
+        if ($savacsEmail === false) {
+            return true;
+        }
+
+        $header = "";
+        foreach ($bccEmails as $bccEmail) {
+            $header .= "Bcc: $bccEmail <$bccEmail>\n";
+        }
+
+        $isSuccess = mb_send_mail($savacsEmail, $title, $message, $header);
+
+        return $isSuccess;
+    }
+
+    /**
+     * Global uploaded notification Email impl
+     *
+     * @param string $message
+     *
+     * @return bool $isSuccess
+     */
+    private static function _globalUploadedNotificationEmailImpl(
+        string  $message,
+        string  $title
+    ) : bool {
+        $globalEmail = getenv('GLOBAL_EMAIL');
+
+        if ($globalEmail === false) {
+            return true;
+        }
+
+        $isSuccess = mb_send_mail($globalEmail, $title, $message);
+
+        return $isSuccess;
+    }
+
+
+    /**
      * Global uploaded notification
      *   - for debug / management
      *
@@ -55,17 +132,11 @@ class WebhookTools
         string $notificationType,
         string $path
     ) : bool {
-        $globalWebhookURI = getenv('GLOBAL_WEBHOOK');
-
-        // cancel webhook upload if not defined
-        if ($globalWebhookURI === false) {
-            return true;
-        }
-
         $message = '';
 
         $toPhotostandDisplayNames = implode(', ', $toPhotostandDisplayNames);
 
+        $title = "[SAVACS] From $fromPhotostandDisplayName New $notificationType";
         $message .= "From: $fromPhotostandDisplayName\n";
         $message .= "To: $toPhotostandDisplayNames\n";
         $message .= "Type: $notificationType\n";
@@ -84,12 +155,48 @@ class WebhookTools
             $message .= "Local: $uri\n";
         }
 
-        $isSuccess = self::post(
-            $globalWebhookURI,
-            $message
+        $webhook = self::_globalUploadedNotificationWebhookImpl($message);
+        $email = self::_globalUploadedNotificationEmailImpl($message, $title);
+
+        return $webhook && $email;
+    }
+
+    /**
+     * Local uploaded notification
+     *
+     * @param string    $fromPhotostandDisplayName  DisplayName
+     * @param int       $notificationType           Notification type
+     * @param string    $path                       Web path
+     * @param array     $emailAddresses             Email addresses
+     *
+     * @return bool $isSuccess
+     */
+    public static function localUploadedNotification(
+        string  $fromPhotostandDisplayName,
+        int     $notificationType,
+        string  $path,
+        array   $emailAddresses
+    ) : bool {
+        $title = sprintf(
+            "%sからの新着%s - SAVACS",
+            $fromPhotostandDisplayName,
+            NotificationType::STR_JP[$notificationType]
         );
 
-        return $isSuccess;
+        $message = sprintf(
+            "%sからの新着%sがあります。\n",
+            $fromPhotostandDisplayName,
+            NotificationType::STR_JP[$notificationType]
+        );
+
+        $globalServer = getenv('SAVACS_GLOBAL');
+
+        if ($globalServer !== false) {
+            $uri = $globalServer. $path;
+            $message .= "\n\nFile URL: $uri\n";
+        }
+
+        return self::emailSendToUser($message, $title, $emailAddresses);
     }
 }
 
@@ -235,6 +342,81 @@ class ApacheEnvironmentWrapper
         } elseif ($ret === false) {
             assert(false, 'Regex pattern is not valid.');
         }
+    }
+
+    /**
+     * Is valid email (HTML5 input[type=email] like)
+     *
+     * @param   string  $emailAddress
+     *
+     * @return  bool    $isValid
+     */
+    private static function _isValidEmailHTML5(
+        string  $emailAddress
+    ) : bool {
+        $ret = preg_match(
+            '/^[a-zA-Z0-9.!#$%&\'*+\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/',
+            $emailAddress
+        );
+
+        if ($ret === 1) {
+            return true;
+        } elseif ($ret === 0) {
+            return false;
+        } elseif ($ret === false) {
+            assert(false, 'Regex pattern is not valid.');
+        }
+    }
+
+    /**
+     * Get email address by params
+     *
+     * @param   array   $parameters
+     * @param   string  $parameterName
+     * @param   bool    $useRFC822
+     *
+     * @return  string  $emailAddress
+     *
+     * @throws  OutOfBoundsException
+     * @throws  UnexpectedValueException
+     */
+    public static function getEmailAddressByParams(
+        array   $parameters,
+        string  $parameterName,
+        bool    $useRFC822 = true
+    ) : string {
+        $emailAddress = self::_getAnyValueByParams(
+            $parameters,
+            $parameterName
+        );
+
+        if (!self::_isValidEmailHTML5($emailAddress))
+            throw new UnexpectedValueException(
+                "Parameter '$parameterName' is not valid (HTML5)"
+            );
+
+        if ($useRFC822)
+            if (!filter_var($emailAddress, FILTER_VALIDATE_EMAIL))
+                throw new UnexpectedValueException(
+                    "Parameter '$parameterName' is not valid (RFC822)"
+                );
+
+        return $emailAddress;
+    }
+
+    /**
+     * Get bool by params
+     *
+     * @param   array   $parameters
+     * @param   string  $parameterName
+     *
+     * @return  bool    $boolean
+     */
+    public static function getBoolByParams(
+        array   $parameters,
+        string  $parameterName
+    ) : bool {
+        return isset($parameters[$parameterName]);
     }
 
     /**
@@ -805,9 +987,37 @@ class DBCommon
     }
 }
 
-
 class DBCPhotostand
 {
+    /**
+     * Is active associations
+     *
+     * @param PDO   $pdo                PDO object
+     * @param int   $formPhotostandId   From Photostand Id
+     * @param array $toPhotosntandIds   To Photostand Ids
+     *
+     * @return bool isValid?
+     */
+    public static function isActiveAssociations(
+        PDO     $pdo,
+        int     $fromPhotostandId,
+        array   $toPhotosntandIds
+    ) : bool {
+        foreach ($toPhotostandIdsArray as $toPhotostandId) {
+            $ret = DBCPhotostand::isActiveAssociation(
+                $pdo,
+                $fromPhotostandId,
+                $toPhotostandId
+            );
+
+            if (!$ret) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Get display name by photostand ID
      *
@@ -1315,7 +1525,6 @@ EOT;
         $sql = <<<EOT
 SELECT
     `id`,
-    `password_hash`,
     `cpu_serial_number`,
     `display_name`
 FROM
@@ -1324,7 +1533,7 @@ EOT;
 
         $statement = $pdo->prepare($sql);
         $statement->execute();
-        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         $statement->closeCursor();
         return $rows;
     }
@@ -1711,6 +1920,195 @@ class SelfyImage
         $this->_fileName            = $fileName;
         $this->_thumbnailFileName   = $thumbnailFileName;
         $this->_createdAt           = $createdAt;
+    }
+}
+
+class NotificationType
+{
+    public const ALL    = 0;
+    public const SELFY  = 1;
+    public const RECORD = 2;
+
+    public const STR_DB = array(
+        self::ALL       => 'true',
+        self::SELFY     => 'selfy_notification',
+        self::RECORD    => 'record_notification'
+    );
+
+    public const STR_JP = array(
+        self::ALL       => '_',
+        self::SELFY     => '自撮り',
+        self::RECORD    => '伝言'
+    );
+}
+
+class DBCNotificationEmail
+{
+    /**
+     * Get email addresses from photostand id 4 debug
+     *
+     * @param PDO $pdo
+     * @param int $photostandId
+     * @param int $type
+     */
+    public static function getEmailAddressesFromPhotostandId4debug(
+        PDO $pdo,
+        int $photostandId,
+        int $notificationType
+    ) : array {
+        $notification_type_sql  = NotificationType::STR_DB[$notificationType];
+        $sql = <<<EOT
+SELECT
+    `id`,
+    `email`,
+    `record_notification` as `record`,
+    `selfy_notification` as `selfy`
+FROM
+    `notification_emails`
+WHERE
+    `photostand_id` = :photostand_id
+    and
+    $notification_type_sql is true
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+        $ret = $statement->bindParam(
+            ':photostand_id',
+            $photostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $statement->closeCursor();
+
+        return $rows;
+    }
+
+    /**
+     * Get email addresses from photostand id
+     *
+     * @param PDO $pdo
+     * @param int $photostandId
+     * @param int $type
+     */
+    public static function getEmailAddressesFromPhotostandId(
+        PDO $pdo,
+        int $photostandId,
+        int $notificationType
+    ) : array {
+        $notification_type_sql  = NotificationType::STR_DB[$notificationType];
+        $sql = <<<EOT
+SELECT
+    `email`
+FROM
+    `notification_emails`
+WHERE
+    `photostand_id` = :photostand_id
+    and
+    $notification_type_sql is true
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+        $ret = $statement->bindParam(
+            ':photostand_id',
+            $photostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
+        $rows = $statement->fetchAll(PDO::FETCH_NUM);
+        $statement->closeCursor();
+
+        if ($rows === false) {
+            return [];
+        }
+
+        return array_column($rows, 0);
+    }
+
+    /**
+     * Registration new email
+     *
+     * @param PDO       $pdo
+     * @param int       $phototstandId
+     * @param string    $email
+     * @param bool      $recordNotificationIsEnable
+     * @param bool      $selfyNotificationIsEnable
+     */
+    public static function registrationNewEmail(
+        PDO     $pdo,
+        int     $photostandId,
+        string  $email,
+        bool    $recordNotificationIsEnable,
+        bool    $selfyNotificationIsEnable
+    ) : void {
+        $sql = <<<EOT
+INSERT
+INTO `notification_emails` (
+    `email`,
+    `record_notification`,
+    `selfy_notification`,
+    `photostand_id`
+)
+VALUES
+(
+    :email,
+    :record_notification,
+    :selfy_notification,
+    :photostand_id
+);
+EOT;
+
+        $statement = $pdo->prepare($sql);
+        assert(!($statement === false), 'Failed to prepare sql.');
+
+        $ret = $statement->bindParam(
+            ':email',
+            $email,
+            PDO::PARAM_STR
+        ) && $statement->bindParam(
+            ':record_notification',
+            $recordNotificationIsEnable,
+            PDO::PARAM_BOOL
+        ) && $statement->bindParam(
+            ':selfy_notification',
+            $selfyNotificationIsEnable,
+            PDO::PARAM_BOOL
+        ) && $statement->bindParam(
+            ':photostand_id',
+            $photostandId,
+            PDO::PARAM_INT
+        );
+        assert(
+            !($ret === false),
+            'Failed to bind param. Failed to check type of argument?'
+        );
+
+        $ret = $statement->execute();
+        $statement->closeCursor();
+        assert(
+            !($ret === false),
+            'Failed to execute statement. Propably SQL syntax error.'
+        );
     }
 }
 
@@ -2754,99 +3152,6 @@ EOT;
             'Failed to execute statement. Propably SQL syntax error.'
         );
     }
-
-    /**
-     * Get sensor data object by range
-     *
-     * @param PDO       $pdo                PDO object
-     * @param int       $fromPhotostandId   From photostand ID
-     * @param int       $beginBackHour      Begin time (current_timestamp - $beginBackHour)
-     * @param int       $endBackHour        End time (current_timestamp - $endBackHour)
-     *
-     * @return array $sensorDataArray (type: SensorData[])
-     *
-     * @throws RuntimeException
-     * @throws PDOException
-     */
-    /*
-    public static function getSensorDataObjectByRange(
-        PDO     $pdo,
-        int     $fromPhotostandId,
-        int     $beginBackHour,
-        int     $endBackHour
-    ) : array {
-        $sql = <<<EOT
-SELECT
-    `id`,
-    `cds_lux`,
-    `temperature_celsius`,
-    `infrared_centimetear`,
-    `ultrasonic_centimetear`,
-    `pyroelectric`,
-    `event_type`,
-    `from_photostand_id`,
-    `created_at`
-FROM
-    `sensor_datas`
-WHERE
-    `from_photostand_id` = :from_photostand_id
-    and
-    `created_at` > ( current_timestamp - interval :begin_back_hour hour )
-    and
-    `created_at` < ( current_timestamp - interval :end_back_hour hour )
-ORDER BY
-    `created_at` ASC
-EOT;
-
-        $statement = $pdo->prepare($sql);
-        assert(!($statement === false), 'Failed to prepare sql.');
-
-        $ret = $statement->bindParam(
-            ':from_photosatnd_id',
-            $fromPhotostandId,
-            PDO::PARAM_INT
-        ) && $statement->bindParam(
-            ':begin_back_hour',
-            $beginBackHour,
-            PDO::PARAM_INT
-        ) && $statement->bindParam(
-            ':end_back_hour',
-            $endBackHour,
-            PDO::PARAM_INT
-        );
-        assert(
-            !($ret === false),
-            'Failed to bind param. Failed to check type of argument?'
-        );
-
-        $rows = $statement->fetchAll(PDO::FETCH_NUM);
-
-        $statement->closeCursor();
-
-        $sensorDataArray = array();
-
-        foreach ($rows as $row) {
-            $sv = new SensorValue(
-                $row[1], // cds lux
-                $row[2], // temperature celsius
-                $row[3], // infrared centimetear
-                $row[4], // ultrasonic centimetear
-                $row[5], // pyroelectric
-                $row[6]  // event type
-            );
-
-            $sd = new SensorData(
-                $sv,
-                $row[7],
-                $row[8]
-            );
-
-            $sensorDataArray[] = $sd;
-        }
-
-
-        return $sensorDataArray;
-    }*/
 
     /**
      * Get sensor data object by range

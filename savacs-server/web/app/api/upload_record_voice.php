@@ -172,12 +172,25 @@ function main()
         );
     }
 
-    WebhookTools::globalUploadedNotification(
+    Notification::globalUploadedNotification(
         $fromPhotostandDisplayName,
         $toPhotostandDisplayNamesArray,
         'Record',
         $recordVoicesDirectoryInfo->getWebServerPath() .
             $recordVoiceFileName
+    );
+
+
+    Notification::localUploadedNotification(
+        $fromPhotostandDisplayName,
+        NotificationType::RECORD,
+        $recordVoicesDirectoryInfo->getWebServerPath() .
+            $recordVoiceFileName,
+        DBCNotificationEmail::getEmailAddressesFromPhotostandId(
+            $pdo,
+            $fromPhotostandId,
+            NotificationType::RECORD
+        )
     );
 
     echo 'Success.';

@@ -4,7 +4,7 @@ RUN set ex; \
     docker-php-ext-install pdo_mysql; \
     \
     apt-get update; \
-    apt-get install -y --no-install-recommends imagemagick; \
+    apt-get install -y --no-install-recommends imagemagick msmtp; \
     savedAptMark="$(apt-mark showmanual)"; \
     apt-get install -y --no-install-recommends wget; \
     \
@@ -28,4 +28,5 @@ RUN set ex; \
 
 COPY php.ini /usr/local/etc/php/php.ini
 COPY 000-default.conf /etc/apache2/sites-enabled/
+COPY msmtprc /etc/msmtprc
 

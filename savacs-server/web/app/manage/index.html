@@ -1,0 +1,258 @@
+<!DOCTYPE HTML>
+<html lang=en>
+  <head>
+    <title>SAVACS ManageInterface</title>
+    <meta name=viewport content=width=device-width,initial-scale=1>
+    <style>
+      html, body {
+        margin: 0;
+        width: 100%;
+      }
+      .container {
+        font-family: monospace;
+        max-width: 800px;
+        margin: auto;
+        width: calc(100%-20px);
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .operation form, .cpuSerialNumberDst, .photostandPasswordDst {
+        display: none;
+      }
+      .operation.visible form {
+        display: block;
+      }
+      .operation h2 {
+        transition: transform .1s, background-color .3s;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        background-color: lightcyan;
+        transform:rotateX(0deg);
+      }
+      .operation.visible h2 {
+          background-color: lightyellow;
+      }
+      .operation h2:active {
+        transform:rotateX(30deg);
+      }
+      .operation h2::before {
+        content: "[+] ";
+        color: darkblue;
+        transition: all .3s ease;
+      }
+      .operation.visible h2::before {
+        content: "[-] ";
+        color: darkorange;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=container>
+      <h1>SAVACS ManageInterface</h1>
+
+      <h2>Target</h2>
+      <div class=target>
+        <form>
+          <div>
+            <label>
+              <p>CpuSerialNumber</p>
+              <input type=text pattern=[\da-f]{16} placeholder=CpuSerialNumber id=targetCpuSerialNumber onchange=syncTarget()>
+            </label>
+          </div>
+          <div>
+            <label>
+              <p>PhotostandPassword</p>
+              <input type=password placeholder=PhotostandPassword id=targetPhotostandPassword onchange=syncTarget()>
+            </label>
+          </div>
+        </form>
+      </div>
+
+      <div class=operation>
+        <h2>GMG: Get all photostands</h2>
+        <form method=get action=operation/getAllPhotostands.php>
+          <div>
+            <p>Operation</p>
+            <input type=submit value=submit>
+          </div>
+        </form>
+      </div>
+
+      <div class=operation>
+        <h2>LMG: Registration email</h2>
+        <form method=post action=operation/registrationEmail.php onsubmit="return validateSubmission(this)">
+          <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
+          <input type=password class=photostandPasswordDst name=password>
+
+          <div>
+            <label>
+              <p>Email</p>
+              <input type=email name=email placeholder=Email required>
+            </label>
+          </div>
+          <div>
+            <p>Options</p>
+            <label>
+              <input type=checkbox name=record checked>
+              <span>Record</span>
+            </label>
+            <label>
+              <input type=checkbox name=selfy checked>
+              <span>Selfy</span>
+            </label>
+          </div>
+          <div>
+            <p>Advanced Options</p>
+            <div>
+              <label>
+                <input type=checkbox name=ignoreWillNotBeUse>
+                <span>Ignore "will not be use" error.</span>
+              </label>
+            </div>
+            <div>
+              <label>
+                <input type=checkbox name=ignoreRfc822>
+                <span>Ignore RFC 822 based validation.</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <p>Operation</p>
+            <input type=reset value=reset>
+            <input type=submit value=submit>
+          </div>
+        </form>
+      </div>
+
+      <div class=operation>
+        <h2>LMG: Unregistration email</h2>
+        <form method=post action=operation/unregistrationEmail.php onsubmit="return validateSubmission(this)">
+          <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
+          <input type=password class=photostandPasswordDst name=password>
+          <div>
+            <label>
+              <p>EmailId</p>
+              <input type=number min=1 value=1 name=email placeholder=EmailId required>
+            </label>
+          </div>
+          <div>
+            <p>Operation</p>
+            <input type=reset value=reset>
+            <input type=submit value=submit>
+          </div>
+        </form>
+      </div>
+
+      <div class=operation>
+        <h2>LMG: Show associated emails</h2>
+        <form method=post action=operation/showAssociatedEmails.php onsubmit="return validateSubmission(this)">
+          <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
+          <input type=password class=photostandPasswordDst name=password>
+          <div>
+            <p>Options</p>
+            <label>
+              <input type=checkbox name=simple checked>
+              <span>SimpleView</span>
+            </label>
+          </div>
+          <div>
+            <p>Operation</p>
+            <input type=reset value=reset>
+            <input type=submit value=submit>
+          </div>
+        </form>
+      </div>
+
+      <div class=operation>
+        <h2>LAPI: Upload selfy image</h2>
+        <form method=post action=../api/upload_selfy_image.php onsubmit="return validateSubmission(this)" enctype=multipart/form-data>
+          <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
+          <input type=password class=photostandPasswordDst name=password>
+          <div>
+            <label>
+              <p>To Photostand ids array</p>
+              <input type=text pattern=\d+(,\d+)? name=toPhotostandIdsArray placeholder=ToPhotostandIdsArray required>
+            </label>
+          </div>
+          <div>
+            <label>
+              <p>Selfy Image (must be jpg)</p>
+              <input type=file name=selfyImage accept=.jpg,.jpeg,image/jpeg required>
+            </label>
+          </div>
+          <div>
+            <p>Operation</p>
+            <input type=reset value=reset>
+            <input type=submit value=submit>
+          </div>
+        </form>
+      </div>
+
+      <div class=operation>
+        <h2>LAPI: Upload record voice</h2>
+        <form method=post action=../api/upload_record_voice.php onsubmit="return validateSubmission(this)" enctype=multipart/form-data>
+          <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
+          <input type=password class=photostandPasswordDst name=password>
+          <div>
+            <label>
+              <p>To Photostand ids array</p>
+              <input type=text pattern=\d+(,\d+)? name=toPhotostandIdsArray placeholder=ToPhotostandIdsArray required>
+            </label>
+          </div>
+          <div>
+            <label>
+              <p>Record voice (must be aac)</p>
+              <input type=file name=recordVoice accept=.aac,audio/aac required>
+            </label>
+          </div>
+          <div>
+            <p>Operation</p>
+            <input type=reset value=reset>
+            <input type=submit value=submit>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const serialSrc = document.getElementById('targetCpuSerialNumber');
+      const serialDst = document.getElementsByClassName('cpuSerialNumberDst');
+      const passwdSrc = document.getElementById('targetPhotostandPassword')
+      const passwdDst = document.getElementsByClassName('photostandPasswordDst');
+
+      const syncTarget = function() {
+        const serialVal = serialSrc.value;
+        for (const d of serialDst)
+          d.value = serialVal;
+
+        const passwdVal = passwdSrc.value;
+        for (const d of passwdDst)
+          d.value = passwdVal;
+      };
+
+      const validateSubmission = function(e) {
+        if (!(e.cpuSerialNumber && e.password))
+          return true;
+
+        syncTarget();
+
+        if (e.cpuSerialNumber.value == '' || e.password.value == '') {
+          alert("Please fill target form.")
+          return false;
+        }
+
+        return true;
+      };
+
+      for (const operation of document.getElementsByClassName('operation'))
+        operation.getElementsByTagName('h2')[0].addEventListener(
+          'click',
+          function(){ operation.classList.toggle('visible') }
+        );
+
+      syncTarget();
+    </script>
+  </body>
+</html>
+
+

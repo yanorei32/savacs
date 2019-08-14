@@ -181,12 +181,24 @@ function main()
         );
     }
 
-    WebhookTools::globalUploadedNotification(
+    Notification::globalUploadedNotification(
         $fromPhotostandDisplayName,
         $toPhotostandDisplayNamesArray,
         'Selfy',
         $selfyImagesDirectoryInfo->getWebServerPath() .
             $selfyImageFileName
+    );
+
+    Notification::localUploadedNotification(
+        $fromPhotostandDisplayName,
+        NotificationType::SELFY,
+        $selfyImagesDirectoryInfo->getWebServerPath() .
+            $selfyImageFileName,
+        DBCNotificationEmail::getEmailAddressesFromPhotostandId(
+            $pdo,
+            $fromPhotostandId,
+            NotificationType::SELFY
+        )
     );
 
     echo 'Success.';
