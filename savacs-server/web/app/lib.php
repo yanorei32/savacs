@@ -1340,6 +1340,8 @@ EOT;
      * @param PDO   $pdo    PDO object
      * @param int   $idA    Photostand A ID (range checked)
      * @param int   $idB    Photostand B ID (range checked)
+     *
+     * @throws UnexpectedValueException
      */
     public static function createAssociationByPhotostandIds(
         PDO $pdo,

@@ -125,14 +125,15 @@
       </div>
 
       <div class=operation>
-        <h2>LMG: Unregistration email</h2>
-        <form method=post action=operation/unregistrationEmail.php onsubmit="return validateSubmission(this)">
+        <h2>LMG: Show associated emails</h2>
+        <form method=post action=operation/showAssociatedEmails.php onsubmit="return validateSubmission(this)">
           <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
           <input type=password class=photostandPasswordDst name=password>
           <div>
+            <p>Options</p>
             <label>
-              <p>EmailId</p>
-              <input type=number min=1 value=1 name=email placeholder=EmailId required>
+              <input type=checkbox name=simple checked>
+              <span>SimpleView</span>
             </label>
           </div>
           <div>
@@ -144,15 +145,20 @@
       </div>
 
       <div class=operation>
-        <h2>LMG: Show associated emails</h2>
-        <form method=post action=operation/showAssociatedEmails.php onsubmit="return validateSubmission(this)">
-          <input type=text class=cpuSerialNumberDst name=cpuSerialNumber>
-          <input type=password class=photostandPasswordDst name=password>
+        <h2>LMG: Photostand association</h2>
+        <form method=post action=operation/photostandAssociation.php onsubmit="return validateSubmission(this)">
+          <input type=text class=cpuSerialNumberDst name=cpuSerialNumberA>
+          <input type=password class=photostandPasswordDst name=passwordA>
           <div>
-            <p>Options</p>
             <label>
-              <input type=checkbox name=simple checked>
-              <span>SimpleView</span>
+              <p>CpuSerialNumber</p>
+              <input type=text pattern=[\da-f]{16} placeholder=cpuSerialNumber name=cpuSerialNumberB>
+            </label>
+          </div>
+          <div>
+            <label>
+              <p>PhotostandPassword</p>
+              <input type=password placeholder=PhotostandPassword name=passwordB>
             </label>
           </div>
           <div>

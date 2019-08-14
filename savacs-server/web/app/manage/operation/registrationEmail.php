@@ -54,7 +54,6 @@ function main()
     }
 
     $pdo = null;
-
     try {
         $pdo = DBCommon::createConnection();
     } catch (Exception $e) {
@@ -62,12 +61,9 @@ function main()
     }
 
     $photostandId = null;
-
     try {
         $photostandId = DBCPhotostand::getIdByCpuSerialNumberAndPassword(
-            $pdo,
-            $cpuSerialNumber,
-            $password
+            $pdo, $cpuSerialNumber, $password
         );
     } catch (Exception $e) {
         exitWithText(createErrorMessage($e, "photostand auth"));
@@ -75,11 +71,7 @@ function main()
 
 
     DBCNotificationEmail::registrationNewEmail(
-        $pdo,
-        $photostandId,
-        $emailAddress,
-        $record,
-        $selfy
+        $pdo, $photostandId, $emailAddress, $record, $selfy
     );
 
     exitWithText("Done (PSID: $photostandId)");

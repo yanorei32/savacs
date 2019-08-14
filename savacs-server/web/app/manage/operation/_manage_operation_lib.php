@@ -2,7 +2,7 @@
 
 function createErrorMessage(Exception $e, string $position) : string {
     return sprintf(
-        "%s in %s:\n%s\n\n%s",
+        '%s in %s:\n%s\n\n%s',
         get_class($e),
         $position,
         $e->getMessage(),
